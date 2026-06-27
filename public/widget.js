@@ -114,6 +114,16 @@
         badge.textContent = d.count > 99 ? '99+' : d.count;
         badge.style.display = 'block';
       }
+      // Lazy-load módulo de banners contextuais
+      if (d.has_contextual_banners) {
+        window.__novidda = window.__novidda || {};
+        window.__novidda.base   = window.__novidda.base   || base;
+        window.__novidda.origin = window.__novidda.origin || origin;
+        window.__novidda.reader = window.__novidda.reader || reader;
+        var cs = document.createElement('script');
+        cs.src = origin + '/widget-contextual.js?v=' + encodeURIComponent(host.dataset.v || '1');
+        document.head.appendChild(cs);
+      }
     })
     .catch(function () {});
 

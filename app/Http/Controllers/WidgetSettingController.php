@@ -32,6 +32,7 @@ class WidgetSettingController extends Controller
             'webhook_url'      => ['nullable', 'url', 'max:255'],
             'feedback_enabled' => ['nullable', 'boolean'],
             'roadmap_enabled'  => ['nullable', 'boolean'],
+            'feed_limit'       => ['nullable', 'integer', 'min:1', 'max:20'],
         ], [], ['button_text' => 'texto do botão', 'open_mode' => 'modo de abertura', 'position' => 'posição']);
 
         $settings = WidgetSetting::firstOrCreate(['account_id' => Tenant::id()]);
@@ -48,6 +49,7 @@ class WidgetSettingController extends Controller
             'webhook_url'      => $v['webhook_url'] ?? null,
             'feedback_enabled' => $request->boolean('feedback_enabled'),
             'roadmap_enabled'  => $request->boolean('roadmap_enabled'),
+            'feed_limit'       => max(1, min(20, (int) ($v['feed_limit'] ?? 5))),
         ]);
 
         WidgetCache::bump(Tenant::id());

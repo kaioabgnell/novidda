@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Category;
 use App\Models\Changelog;
+use App\Models\ContextualBanner;
 use App\Support\HtmlSanitizer;
 use App\Support\WidgetCache;
 use Illuminate\Http\Request;
@@ -11,14 +12,28 @@ use Illuminate\Support\Facades\Storage;
 
 class ChangelogController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $changelogs = Changelog::with('categories')
-            ->withCount(['reactions', 'comments'])
-            ->latest()
-            ->paginate(15);
+        $filters = [
+            'search' => trim((string) $request->query('search', '')),
+            'type'   => $request->query('type', ''),
+            'status' => $request->query('status', ''),
+            'from'   => $request->query('from', ''),
+            'to'     => $request->query('to', ''),
+        ];
 
-        return view('changelogs.index', compact('changelogs'));
+        $changelogs = Changelog::with(['categories', 'contextualBanner'])
+            ->withCount(['reactions', 'comments'])
+            ->when($filters['search'] !== '', fn ($q) => $q->where('title', 'like', '%' . $filters['search'] . '%'))
+            ->when(in_array($filters['type'], ['feature', 'hotfix', 'improvement', 'announcement'], true), fn ($q) => $q->where('type', $filters['type']))
+            ->when(in_array($filters['status'], ['draft', 'published', 'archived'], true), fn ($q) => $q->where('status', $filters['status']))
+            ->when($filters['from'] !== '', fn ($q) => $q->whereDate('published_at', '>=', $filters['from']))
+            ->when($filters['to'] !== '', fn ($q) => $q->whereDate('published_at', '<=', $filters['to']))
+            ->latest()
+            ->paginate(15)
+            ->withQueryString();
+
+        return view('changelogs.index', compact('changelogs', 'filters'));
     }
 
     public function create()
@@ -30,6 +45,7 @@ class ChangelogController extends Controller
             'comments'   => collect(),
             'reactions'  => collect(),
             'feedbacks'  => collect(),
+            'banner'     => null,
         ]);
     }
 
@@ -46,7 +62,7 @@ class ChangelogController extends Controller
 
     public function edit(Changelog $changelog)
     {
-        $changelog->load('media', 'widgetSettings');
+        $changelog->load('media', 'widgetSettings', 'contextualBanner.rules');
 
         $comments  = $changelog->comments()->latest()->get();
         $reactions = $changelog->reactions()
@@ -63,6 +79,7 @@ class ChangelogController extends Controller
             'comments'   => $comments,
             'reactions'  => $reactions,
             'feedbacks'  => $feedbacks,
+            'banner'     => $changelog->contextualBanner,
         ]);
     }
 
@@ -138,6 +155,40 @@ class ChangelogController extends Controller
             $publishedAt = now();
         }
 
+        // Banner contextual
+        $bannerRaw   = $request->input('banner', []);
+        $bannerRules = $request->input('banner_rules', []);
+
+        $banner = null;
+        if (is_array($bannerRaw)) {
+            $validRules = [];
+            foreach ($bannerRules as $rule) {
+                if (empty($rule['pattern'])) continue;
+                if (!in_array($rule['type'] ?? '', ['include', 'exclude'], true)) continue;
+                if (!in_array($rule['mode'] ?? '', ['exact', 'contains', 'starts_with', 'regex'], true)) continue;
+                if ($rule['mode'] === 'regex' && @preg_match('/' . $rule['pattern'] . '/', '') === false) continue;
+                $validRules[] = [
+                    'type'       => $rule['type'],
+                    'match_mode' => $rule['mode'],
+                    'pattern'    => substr($rule['pattern'], 0, 500),
+                ];
+            }
+            $banner = [
+                'enabled'              => (bool) ($bannerRaw['enabled'] ?? false),
+                'style'                => in_array($bannerRaw['style'] ?? '', ['toast', 'top_bar', 'bottom_bar'], true) ? $bannerRaw['style'] : 'toast',
+                'position'             => in_array($bannerRaw['position'] ?? '', ['bottom_right', 'bottom_left', 'top_right', 'top_left'], true) ? $bannerRaw['position'] : 'bottom_right',
+                'frequency'            => in_array($bannerRaw['frequency'] ?? '', ['once_per_user', 'until_clicked', 'times_capped'], true) ? $bannerRaw['frequency'] : 'once_per_user',
+                'frequency_cap'        => isset($bannerRaw['frequency_cap']) ? max(1, min(50, (int) $bannerRaw['frequency_cap'])) : null,
+                'auto_dismiss_seconds' => isset($bannerRaw['auto_dismiss_seconds']) && $bannerRaw['auto_dismiss_seconds'] !== '' ? max(1, min(300, (int) $bannerRaw['auto_dismiss_seconds'])) : null,
+                'expires_at'           => filled($bannerRaw['expires_at'] ?? '') ? $bannerRaw['expires_at'] : null,
+                'custom_copy'          => substr(strip_tags($bannerRaw['custom_copy'] ?? ''), 0, 500) ?: null,
+                'cta_text'             => substr($bannerRaw['cta_text'] ?? '', 0, 80) ?: null,
+                'cta_url'              => filter_var($bannerRaw['cta_url'] ?? '', FILTER_VALIDATE_URL) ? $bannerRaw['cta_url'] : null,
+                'cta_new_tab'          => (bool) ($bannerRaw['cta_new_tab'] ?? false),
+                'rules'                => $validRules,
+            ];
+        }
+
         return [
             'attributes' => [
                 'title' => $v['title'],
@@ -161,6 +212,7 @@ class ChangelogController extends Controller
                 'cta_color'        => $v['cta_color'] ?? null,
                 'cta_new_tab'      => $request->boolean('cta_new_tab'),
             ],
+            'banner' => $banner,
         ];
     }
 
@@ -192,6 +244,19 @@ class ChangelogController extends Controller
             $url = trim($url);
             if ($url !== '') {
                 $changelog->media()->create(['type' => 'youtube', 'url' => $url, 'position' => ++$position]);
+            }
+        }
+
+        // Banner contextual
+        if ($data['banner'] !== null) {
+            $bannerData = $data['banner'];
+            $rules = $bannerData['rules'];
+            unset($bannerData['rules']);
+
+            $banner = $changelog->contextualBanner()->updateOrCreate([], $bannerData);
+            $banner->rules()->delete();
+            foreach ($rules as $rule) {
+                $banner->rules()->create($rule);
             }
         }
 

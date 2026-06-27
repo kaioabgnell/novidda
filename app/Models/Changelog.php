@@ -70,4 +70,9 @@ class Changelog extends Model
     {
         return $this->hasMany(ChangelogFeedback::class);
     }
+
+    public function contextualBanner(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(ContextualBanner::class);
+    }
 }

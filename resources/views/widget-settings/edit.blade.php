@@ -119,18 +119,30 @@
             <hr class="divider">
 
             <div style="margin-bottom:20px;margin-top:24px;">
-                <h3 style="font-size:16px;font-weight:700;margin-bottom:4px;">Integrações</h3>
-                <p style="font-size:13px;color:var(--mute);margin:0;">Notificações e automações externas.</p>
+                <h3 style="font-size:16px;font-weight:700;margin-bottom:4px;">Quantidade de changelogs</h3>
+                <p style="font-size:13px;color:var(--mute);margin:0;">Número de changelogs exibidos no widget. Máximo de 20 itens.</p>
             </div>
 
-            <div class="field">
-                <label for="webhook_url">URL de webhook (disparada ao publicar)</label>
-                <input class="input" id="webhook_url" name="webhook_url"
-                       value="{{ old('webhook_url', $settings->webhook_url) }}"
-                       placeholder="https://hooks.exemplo.com/novidda">
+            <div class="field" style="margin-bottom:28px;">
+                <label for="feed_limit">Changelogs visíveis no widget</label>
+                <div style="display:flex;align-items:center;gap:14px;">
+                    <input type="range" id="feed_limit_range" min="1" max="20"
+                           value="{{ old('feed_limit', $settings->feed_limit ?? 5) }}"
+                           style="flex:1;accent-color:var(--primary);cursor:pointer;"
+                           oninput="document.getElementById('feed_limit').value=this.value;document.getElementById('feed_limit_preview').textContent=this.value;">
+                    <input type="number" class="input" id="feed_limit" name="feed_limit" min="1" max="20"
+                           value="{{ old('feed_limit', $settings->feed_limit ?? 5) }}"
+                           style="width:72px;text-align:center;"
+                           oninput="var v=Math.min(20,Math.max(1,this.value||1));this.value=v;document.getElementById('feed_limit_range').value=v;document.getElementById('feed_limit_preview').textContent=v;">
+                    <span id="feed_limit_preview"
+                          style="font-size:22px;font-weight:800;color:var(--primary);min-width:28px;text-align:center;">{{ old('feed_limit', $settings->feed_limit ?? 5) }}</span>
+                </div>
             </div>
 
             <hr class="divider">
+
+            {{-- webhook_url oculto — mantido para não quebrar a validação --}}
+            <input type="hidden" name="webhook_url" value="{{ old('webhook_url', $settings->webhook_url) }}">
 
             <div style="margin-bottom:20px;">
                 <h3 style="font-size:16px;font-weight:700;margin-bottom:4px;">CSS personalizado</h3>

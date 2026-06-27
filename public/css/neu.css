@@ -598,3 +598,91 @@ body.dark hr.divider { border-color: rgba(123,97,255,.12); }
   .auth-form-panel { width: 100%; padding: 32px 24px; }
   .auth-form-inner { max-width: 100%; }
 }
+
+/* ── Paginação ── */
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.pagination .page-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 38px;
+  height: 38px;
+  padding: 0 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--body-txt, var(--ink));
+  background: var(--card-bg);
+  border: 1.5px solid var(--primary-pale);
+  border-radius: var(--r-sm);
+  transition: background .15s, color .15s, border-color .15s;
+}
+body.dark .pagination .page-link { border-color: rgba(123, 97, 255, 0.2); }
+.pagination a.page-link:hover {
+  background: var(--canvas-soft);
+  color: var(--ink);
+  border-color: var(--primary-neutral);
+}
+.pagination .page-link.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+  cursor: default;
+}
+.pagination .page-link.disabled {
+  color: var(--mute);
+  opacity: .5;
+  cursor: not-allowed;
+}
+.pagination .page-link.dots {
+  border-color: transparent;
+  background: transparent;
+  cursor: default;
+}
+
+/* ── Barra de filtros ── */
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
+}
+.filter-bar .filter-field { display: flex; flex-direction: column; gap: 6px; }
+.filter-bar .filter-field > label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: var(--mute);
+}
+.filter-bar .filter-search { flex: 1 1 240px; min-width: 200px; }
+.filter-bar .input, .filter-bar .select { font-size: 14px; padding: 9px 12px; }
+.filter-bar select.select { padding-right: 32px; }
+@media (max-width: 768px) {
+  .filter-bar .filter-field { flex: 1 1 100%; }
+}
+
+/* ── Banner Contextual (admin form) ── */
+#nv-banner-card .banner-toggle-hd:hover { opacity: .85; }
+#nv-banner-body .field > label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: var(--mute);
+  margin-bottom: 6px;
+  display: block;
+}
+.rule-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+}
+.rule-row .input,
+.rule-row .select { height: 36px; font-size: 13px; }
+.rule-row .select { padding-right: 28px; }

@@ -12,10 +12,11 @@ class WidgetSetting extends Model
 
     protected $fillable = [
         'account_id', 'button_text', 'open_mode', 'position',
-        'theme', 'custom_css', 'webhook_url', 'feedback_enabled', 'roadmap_enabled',
+        'theme', 'custom_css', 'webhook_url', 'feedback_enabled', 'roadmap_enabled', 'feed_limit',
     ];
 
     protected $casts = [
-        'theme' => 'array',
+        'theme'      => 'array',
+        'feed_limit' => 'integer',
     ];
 }

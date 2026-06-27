@@ -7,6 +7,8 @@ use App\Models\Account;
 use App\Models\Changelog;
 use App\Models\ChangelogFeedback;
 use App\Models\Comment;
+use App\Models\ContextualBanner;
+use App\Models\ContextualRule;
 use App\Models\Reaction;
 use App\Models\Read;
 use App\Models\RoadmapComment;
@@ -48,6 +50,7 @@ class WidgetApiController extends Controller
                 'dark'             => (bool) ($theme['dark'] ?? false),
                 'custom_css'       => $s->custom_css ?? '',
                 'roadmap_enabled'  => (bool) ($s->roadmap_enabled ?? true),
+                'feed_limit'       => (int) ($s->feed_limit ?? 5),
             ];
         });
 
@@ -84,15 +87,25 @@ class WidgetApiController extends Controller
             $unreadIds = $liveIds->diff($readIds)->values()->toArray();
         }
 
+        $hasContextual = Cache::remember(
+            WidgetCache::key($account->id, 'has_ctxb'),
+            now()->addMinutes(5),
+            function () {
+                return ContextualBanner::active()
+                    ->whereHas('changelog', fn ($q) => $q->where('status', 'published'))
+                    ->exists();
+            }
+        );
+
         return response()->json([
-            'count'            => count($unreadIds),
-            'unread_ids'       => $unreadIds,
-            'position'         => $s->position ?? 'right',
-            'open_mode'        => $s->open_mode ?? 'side',
-            'accent'           => $theme['accent'] ?? '#6c5ce7',
-            'dark'             => (bool) ($theme['dark'] ?? false),
-            'button_icon'      => $theme['button_icon'] ?? null,
-            // 'feedback_enabled' => (bool) ($s->feedback_enabled ?? false), // REMOVIDO — reservado para uso futuro
+            'count'                   => count($unreadIds),
+            'unread_ids'              => $unreadIds,
+            'position'                => $s->position ?? 'right',
+            'open_mode'               => $s->open_mode ?? 'side',
+            'accent'                  => $theme['accent'] ?? '#6c5ce7',
+            'dark'                    => (bool) ($theme['dark'] ?? false),
+            'button_icon'             => $theme['button_icon'] ?? null,
+            'has_contextual_banners'  => $hasContextual,
         ])->header('Cache-Control', 'no-cache, private');
     }
 
@@ -100,13 +113,14 @@ class WidgetApiController extends Controller
     public function feed(Request $request): JsonResponse
     {
         $account = $this->account($request);
+        $limit   = (int) ($account->widgetSettings->feed_limit ?? 5);
 
-        $payload = Cache::remember(WidgetCache::key($account->id, 'feed'), now()->addMinutes(10), function () {
+        $payload = Cache::remember(WidgetCache::key($account->id, 'feed'), now()->addMinutes(10), function () use ($limit) {
             return Changelog::live()
                 ->with(['media', 'categories', 'widgetSettings', 'comments' => fn ($q) => $q->approved()->latest()])
                 ->withCount('reactions')
                 ->orderByDesc('published_at')
-                ->limit(30)
+                ->limit($limit)
                 ->get()
                 ->map(fn (Changelog $c) => $this->serializeChangelog($c))
                 ->all();
@@ -332,6 +346,64 @@ class WidgetApiController extends Controller
         return response()->json(['ok' => true, 'pending' => true]);
     }
 
+    /** Lista banners contextuais ativos — cacheado 5 min + ETag. */
+    public function contextual(Request $request): JsonResponse
+    {
+        $account = $this->account($request);
+
+        $payload = Cache::remember(WidgetCache::key($account->id, 'contextual'), now()->addMinutes(5), function () {
+            return ContextualBanner::active()
+                ->whereHas('changelog', fn ($q) => $q->where('status', 'published'))
+                ->with(['changelog', 'rules'])
+                ->get()
+                ->map(fn (ContextualBanner $b) => $this->serializeBanner($b))
+                ->all();
+        });
+
+        $json = json_encode(['banners' => $payload], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        $etag = '"' . md5($json) . '"';
+
+        if (trim((string) $request->header('If-None-Match')) === $etag) {
+            return response()->json(null, 304)->header('ETag', $etag);
+        }
+
+        return response()->json(['banners' => $payload])
+            ->header('ETag', $etag)
+            ->header('Cache-Control', 'no-cache');
+    }
+
+    /** Registra evento de banner contextual (shown / dismissed / clicked). */
+    public function contextualEvent(Request $request): \Illuminate\Http\Response
+    {
+        $account = $this->account($request);
+
+        $data = $request->validate([
+            'banner_id' => ['required', 'integer'],
+            'reader_id' => ['required', 'string', 'max:64'],
+            'event'     => ['required', 'in:shown,dismissed,clicked'],
+            'url'       => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        // Verifica que o banner pertence à conta (segurança)
+        $banner = ContextualBanner::whereHas('changelog', fn ($q) => $q->where('status', 'published'))
+            ->find($data['banner_id']);
+
+        if (!$banner) {
+            return response()->noContent();
+        }
+
+        WidgetEvent::create([
+            'account_id'   => $account->id,
+            'changelog_id' => $banner->changelog_id,
+            'reader_id'    => substr($data['reader_id'], 0, 64),
+            'type'         => 'contextual_' . $data['event'],
+            'metadata'     => ['banner_id' => $banner->id, 'url' => $data['url'] ?? null],
+            'created_at'   => now(),
+        ]);
+
+        return response()->noContent();
+    }
+
     // ---- helpers ----
 
     protected function serializeChangelog(Changelog $c): array
@@ -373,6 +445,50 @@ class WidgetApiController extends Controller
                 ])->all()
                 : [],
         ];
+    }
+
+    protected function serializeBanner(ContextualBanner $b): array
+    {
+        $c = $b->changelog;
+        $typeIcons = [
+            'feature'      => 'fa-solid fa-star',
+            'hotfix'       => 'fa-solid fa-wrench',
+            'improvement'  => 'fa-solid fa-arrow-trend-up',
+            'announcement' => 'fa-solid fa-bullhorn',
+        ];
+        $includeRules = $b->rules->where('type', 'include')->values();
+        $excludeRules = $b->rules->where('type', 'exclude')->values();
+
+        return [
+            'id'                    => $b->id,
+            'changelog_id'          => $b->changelog_id,
+            'style'                 => $b->style,
+            'position'              => $b->position,
+            'frequency'             => $b->frequency,
+            'frequency_cap'         => $b->frequency_cap,
+            'auto_dismiss_seconds'  => $b->auto_dismiss_seconds,
+            'expires_at'            => $b->expires_at?->toIso8601String(),
+            'copy' => [
+                'title'       => $b->custom_copy ?: $c->title,
+                'description' => $this->excerpt($c->description ?? '', 120),
+                'icon'        => $typeIcons[$c->type] ?? null,
+            ],
+            'cta' => $b->cta_text ? [
+                'text'    => $b->cta_text,
+                'url'     => $b->cta_url ?? '#',
+                'new_tab' => (bool) $b->cta_new_tab,
+            ] : null,
+            'rules' => [
+                'include' => $includeRules->map(fn ($r) => ['mode' => $r->match_mode, 'pattern' => $r->pattern])->all(),
+                'exclude' => $excludeRules->map(fn ($r) => ['mode' => $r->match_mode, 'pattern' => $r->pattern])->all(),
+            ],
+        ];
+    }
+
+    protected function excerpt(string $html, int $max): string
+    {
+        $text = trim(strip_tags($html));
+        return mb_strlen($text) > $max ? mb_substr($text, 0, $max) . '…' : $text;
     }
 
     protected function youtubeId(?string $url): ?string

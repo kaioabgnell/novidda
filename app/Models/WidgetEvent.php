@@ -13,9 +13,10 @@ class WidgetEvent extends Model
     // Só created_at (eventos imutáveis).
     public $timestamps = false;
 
-    protected $fillable = ['account_id', 'changelog_id', 'reader_id', 'type', 'created_at'];
+    protected $fillable = ['account_id', 'changelog_id', 'reader_id', 'type', 'metadata', 'created_at'];
 
     protected $casts = [
         'created_at' => 'datetime',
+        'metadata'   => 'array',
     ];
 }
