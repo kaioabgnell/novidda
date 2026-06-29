@@ -147,6 +147,12 @@ class ChangelogController extends Controller
             'cta_url' => ['nullable', 'url', 'max:255'],
             'cta_color' => ['nullable', 'string', 'max:30'],
             'cta_new_tab' => ['nullable', 'boolean'],
+            // segmentação
+            'segment_enabled' => ['nullable', 'boolean'],
+            'segment_rules'   => ['nullable', 'array', 'max:10'],
+            'segment_rules.*.attribute' => ['required_with:segment_rules', 'string', 'max:100'],
+            'segment_rules.*.operator'  => ['required_with:segment_rules', 'string', 'in:equals,not_equals,contains,starts_with,ends_with,greater_than,less_than,before,after,in,not_in,exists,not_exists'],
+            'segment_rules.*.value'     => ['nullable', 'string', 'max:500'],
         ], [], ['title' => 'título', 'type' => 'tipo', 'status' => 'status']);
 
         // Agendamento: se publicado sem data, publica agora.
@@ -182,21 +188,47 @@ class ChangelogController extends Controller
                 'auto_dismiss_seconds' => isset($bannerRaw['auto_dismiss_seconds']) && $bannerRaw['auto_dismiss_seconds'] !== '' ? max(1, min(300, (int) $bannerRaw['auto_dismiss_seconds'])) : null,
                 'expires_at'           => filled($bannerRaw['expires_at'] ?? '') ? $bannerRaw['expires_at'] : null,
                 'custom_copy'          => substr(strip_tags($bannerRaw['custom_copy'] ?? ''), 0, 500) ?: null,
+                'bg_color'             => preg_match('/^#[0-9a-fA-F]{3,8}$/', $bannerRaw['bg_color'] ?? '') ? $bannerRaw['bg_color'] : null,
+                'text_color'           => preg_match('/^#[0-9a-fA-F]{3,8}$/', $bannerRaw['text_color'] ?? '') ? $bannerRaw['text_color'] : null,
+                'description'          => substr(strip_tags($bannerRaw['description'] ?? ''), 0, 1000) ?: null,
                 'cta_text'             => substr($bannerRaw['cta_text'] ?? '', 0, 80) ?: null,
                 'cta_url'              => filter_var($bannerRaw['cta_url'] ?? '', FILTER_VALIDATE_URL) ? $bannerRaw['cta_url'] : null,
+                'cta_color'            => preg_match('/^#[0-9a-fA-F]{3,8}$/', $bannerRaw['cta_color'] ?? '') ? $bannerRaw['cta_color'] : null,
                 'cta_new_tab'          => (bool) ($bannerRaw['cta_new_tab'] ?? false),
                 'rules'                => $validRules,
             ];
         }
 
+        // Segmentação: processa as regras
+        $segmentEnabled = $request->boolean('segment_enabled');
+        $segmentRules   = [];
+        foreach ($v['segment_rules'] ?? [] as $i => $rule) {
+            if (empty($rule['attribute']) || empty($rule['operator'])) continue;
+            $rawValue = $rule['value'] ?? null;
+            // Para operadores multi-valor (in, not_in), converte string CSV em array
+            if (in_array($rule['operator'], ['in', 'not_in'], true) && is_string($rawValue)) {
+                $parsed = array_map('trim', explode(',', $rawValue));
+                $ruleValue = array_values(array_filter($parsed, fn ($v) => $v !== ''));
+            } else {
+                $ruleValue = $rawValue !== '' ? $rawValue : null;
+            }
+            $segmentRules[] = [
+                'attribute' => substr($rule['attribute'], 0, 100),
+                'operator'  => $rule['operator'],
+                'value'     => $ruleValue,
+                'position'  => $i,
+            ];
+        }
+
         return [
             'attributes' => [
-                'title' => $v['title'],
-                'description' => HtmlSanitizer::clean($v['description'] ?? ''),
-                'type' => $v['type'],
-                'status' => $v['status'],
-                'reaction_emoji' => $v['reaction_emoji'] ?: '❤️',
-                'published_at' => $publishedAt,
+                'title'           => $v['title'],
+                'description'     => HtmlSanitizer::clean($v['description'] ?? ''),
+                'type'            => $v['type'],
+                'status'          => $v['status'],
+                'segment_enabled' => $segmentEnabled,
+                'reaction_emoji'  => $v['reaction_emoji'] ?: '❤️',
+                'published_at'    => $publishedAt,
             ],
             'categories' => $v['categories'] ?? [],
             'youtube_urls' => $v['youtube_urls'] ?? '',
@@ -212,7 +244,8 @@ class ChangelogController extends Controller
                 'cta_color'        => $v['cta_color'] ?? null,
                 'cta_new_tab'      => $request->boolean('cta_new_tab'),
             ],
-            'banner' => $banner,
+            'banner'        => $banner,
+            'segment_rules' => $segmentRules,
         ];
     }
 
@@ -258,6 +291,12 @@ class ChangelogController extends Controller
             foreach ($rules as $rule) {
                 $banner->rules()->create($rule);
             }
+        }
+
+        // Segmentação
+        $changelog->segmentRules()->delete();
+        foreach ($data['segment_rules'] as $rule) {
+            $changelog->segmentRules()->create($rule);
         }
 
         WidgetCache::bump($changelog->account_id);

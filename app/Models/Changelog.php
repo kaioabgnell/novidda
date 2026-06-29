@@ -17,11 +17,12 @@ class Changelog extends Model
 
     protected $fillable = [
         'account_id', 'title', 'slug', 'description',
-        'type', 'status', 'reaction_emoji', 'published_at',
+        'type', 'status', 'segment_enabled', 'reaction_emoji', 'published_at',
     ];
 
     protected $casts = [
-        'published_at' => 'datetime',
+        'published_at'    => 'datetime',
+        'segment_enabled' => 'boolean',
     ];
 
     protected static function booted(): void
@@ -74,5 +75,10 @@ class Changelog extends Model
     public function contextualBanner(): \Illuminate\Database\Eloquent\Relations\HasOne
     {
         return $this->hasOne(ContextualBanner::class);
+    }
+
+    public function segmentRules(): HasMany
+    {
+        return $this->hasMany(ChangelogSegmentRule::class)->orderBy('position');
     }
 }

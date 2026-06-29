@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\IndexUserAttributesJob;
 use App\Models\Account;
 use App\Models\Changelog;
 use App\Models\ChangelogFeedback;
+use App\Models\ChangelogSegmentRule;
 use App\Models\Comment;
 use App\Models\ContextualBanner;
 use App\Models\ContextualRule;
@@ -16,6 +18,7 @@ use App\Models\RoadmapFeedback;
 use App\Models\RoadmapItem;
 use App\Models\WidgetEvent;
 use App\Models\WidgetFeedback;
+use App\Services\SegmentMatcher;
 use App\Support\WidgetCache;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -109,27 +112,49 @@ class WidgetApiController extends Controller
         ])->header('Cache-Control', 'no-cache, private');
     }
 
-    /** Feed de changelogs publicados — cache médio + ETag. */
+    /** Feed de changelogs publicados — suporta segmentação por usuário. */
     public function feed(Request $request): JsonResponse
     {
         $account = $this->account($request);
         $limit   = (int) ($account->widgetSettings->feed_limit ?? 5);
+        $user    = $this->parseUserContext($request);
 
-        $payload = Cache::remember(WidgetCache::key($account->id, 'feed'), now()->addMinutes(10), function () use ($limit) {
-            return Changelog::live()
-                ->with(['media', 'categories', 'widgetSettings', 'comments' => fn ($q) => $q->approved()->latest()])
+        // Verifica se algum changelog desta conta usa segmentação
+        $hasSegments = Cache::remember(
+            WidgetCache::key($account->id, 'has_segments'),
+            now()->addMinutes(5),
+            fn () => Changelog::live()->where('segment_enabled', true)->exists()
+        );
+
+        // Indexa atributos do usuário para auto-descoberta
+        if ($hasSegments && $user && isset($user['id'])) {
+            IndexUserAttributesJob::dispatch($account->id, $user);
+        }
+
+        $cacheKey = $hasSegments
+            ? $this->buildSegmentCacheKey($account, $user)
+            : WidgetCache::key($account->id, 'feed');
+
+        $payload = Cache::remember($cacheKey, now()->addMinutes(10), function () use ($limit, $user, $hasSegments) {
+            $changelogs = Changelog::live()
+                ->with(['media', 'categories', 'widgetSettings',
+                        'comments' => fn ($q) => $q->approved()->latest(),
+                        'segmentRules'])
                 ->withCount('reactions')
                 ->orderByDesc('published_at')
                 ->limit($limit)
-                ->get()
-                ->map(fn (Changelog $c) => $this->serializeChangelog($c))
-                ->all();
+                ->get();
+
+            if ($hasSegments) {
+                $matcher    = new SegmentMatcher();
+                $changelogs = $changelogs->filter(fn ($c) => $matcher->matches($c, $user));
+            }
+
+            return $changelogs->map(fn (Changelog $c) => $this->serializeChangelog($c))->values()->all();
         });
 
         $this->recordEvent($account->id, null, $request->query('reader_id'), 'open');
 
-        // no-cache + ETag: browser revalida em toda abertura do painel.
-        // O Cache::remember acima ainda evita query no DB quando nada mudou.
         $json = json_encode(['items' => $payload], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         $etag = '"' . md5($json) . '"';
 
@@ -140,6 +165,43 @@ class WidgetApiController extends Controller
         return response()->json(['items' => $payload])
             ->header('ETag', $etag)
             ->header('Cache-Control', 'no-cache');
+    }
+
+    protected function parseUserContext(Request $request): ?array
+    {
+        $payload = $request->input('user');
+
+        if (!is_array($payload)) {
+            return null;
+        }
+
+        if (strlen(json_encode($payload)) > 8192) {
+            return null;
+        }
+
+        return $payload;
+    }
+
+    protected function buildSegmentCacheKey(Account $account, ?array $user): string
+    {
+        if (empty($user)) {
+            return WidgetCache::key($account->id, 'feed:anon');
+        }
+
+        $relevantAttrs = Cache::remember(
+            WidgetCache::key($account->id, 'relevant_attrs'),
+            3600,
+            fn () => ChangelogSegmentRule::whereHas('changelog', fn ($q) =>
+                $q->where('status', 'published')->where('segment_enabled', true)
+            )->distinct()->pluck('attribute')->toArray()
+        );
+
+        $shape = [];
+        foreach ($relevantAttrs as $path) {
+            $shape[$path] = data_get($user, $path);
+        }
+
+        return WidgetCache::key($account->id, 'feed:' . md5(json_encode($shape)));
     }
 
     /** Marca changelogs como lidos para o leitor (zera o badge). */
@@ -470,13 +532,18 @@ class WidgetApiController extends Controller
             'expires_at'            => $b->expires_at?->toIso8601String(),
             'copy' => [
                 'title'       => $b->custom_copy ?: $c->title,
-                'description' => $this->excerpt($c->description ?? '', 120),
+                'description' => $b->description ?: null,
                 'icon'        => $typeIcons[$c->type] ?? null,
+            ],
+            'colors' => [
+                'bg'   => $b->bg_color ?: null,
+                'text' => $b->text_color ?: null,
             ],
             'cta' => $b->cta_text ? [
                 'text'    => $b->cta_text,
                 'url'     => $b->cta_url ?? '#',
                 'new_tab' => (bool) $b->cta_new_tab,
+                'color'   => $b->cta_color ?: null,
             ] : null,
             'rules' => [
                 'include' => $includeRules->map(fn ($r) => ['mode' => $r->match_mode, 'pattern' => $r->pattern])->all(),

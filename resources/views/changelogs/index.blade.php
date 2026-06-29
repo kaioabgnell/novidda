@@ -1,6 +1,10 @@
 @extends('layouts.app')
 @section('title', 'Changelogs')
 
+@push('head')
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+@endpush
+
 @section('content')
 @php $hasFilters = $filters['search'] !== '' || $filters['type'] !== '' || $filters['status'] !== '' || $filters['from'] !== '' || $filters['to'] !== ''; @endphp
 
@@ -157,9 +161,9 @@
                                         </form>
                                     @endif
                                     <form method="POST" action="{{ route('changelogs.destroy', $c) }}"
-                                          data-confirm="Remover este changelog?">
+                                          class="nv-swal-delete">
                                         @csrf @method('DELETE')
-                                        <button class="btn btn-sm btn-icon btn-danger" title="Remover">
+                                        <button type="button" class="btn btn-sm btn-icon btn-danger" title="Remover">
                                             <i class="fa-solid fa-trash"></i>
                                         </button>
                                     </form>
@@ -176,3 +180,26 @@
     @endif
 @endif
 @endsection
+
+@push('scripts')
+<script>
+document.querySelectorAll('.nv-swal-delete').forEach(function (form) {
+    form.querySelector('button').addEventListener('click', function () {
+        Swal.fire({
+            title: 'Remover changelog?',
+            text: 'Esta ação não pode ser desfeita.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Sim, remover',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#6b7280',
+            focusCancel: true,
+            reverseButtons: true,
+        }).then(function (result) {
+            if (result.isConfirmed) form.submit();
+        });
+    });
+});
+</script>
+@endpush

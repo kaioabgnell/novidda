@@ -8,6 +8,7 @@ use App\Http\Controllers\CommentModerationController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmbedController;
 use App\Http\Controllers\RoadmapController;
+use App\Http\Controllers\SegmentationController;
 use App\Http\Controllers\WidgetSettingController;
 use Illuminate\Support\Facades\Route;
 
@@ -44,4 +45,12 @@ Route::middleware(['auth', 'tenant'])->group(function () {
 
     Route::get('widget-settings', [WidgetSettingController::class, 'edit'])->name('widget-settings.edit');
     Route::put('widget-settings', [WidgetSettingController::class, 'update'])->name('widget-settings.update');
+
+    // ---- API de segmentação (retornam JSON) ----
+    Route::get('api/admin/attributes/discovery', [SegmentationController::class, 'discovery'])
+        ->name('segmentation.discovery');
+    Route::post('api/admin/changelogs/{changelog}/estimate-reach', [SegmentationController::class, 'estimateReach'])
+        ->name('segmentation.estimate-reach');
+    Route::post('api/admin/changelogs/{changelog}/preview-audience', [SegmentationController::class, 'previewAudience'])
+        ->name('segmentation.preview-audience');
 });

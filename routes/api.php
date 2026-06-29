@@ -25,7 +25,7 @@ Route::prefix('v1/widget/{token}')
     ->group(function () {
         Route::get('config', [WidgetApiController::class, 'config']);
         Route::get('unread-count', [WidgetApiController::class, 'unreadCount']);
-        Route::get('feed', [WidgetApiController::class, 'feed']);
+        Route::match(['get', 'post'], 'feed', [WidgetApiController::class, 'feed']);
         Route::post('read', [WidgetApiController::class, 'read']);
         Route::post('reaction', [WidgetApiController::class, 'reaction']);
         Route::post('comment', [WidgetApiController::class, 'comment']);
