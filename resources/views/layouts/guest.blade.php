@@ -14,13 +14,13 @@
     {{-- Lado esquerdo — hero de boas-vindas --}}
     <div class="auth-hero">
         <div class="auth-hero-content">
-            <img src="{{ asset('img/Novidda_Logo.png') }}" alt="Novidda" class="auth-hero-logo">
+            <img src="{{ asset('img/Novidda_Logo_font_white.png') }}" alt="Novidda" class="auth-hero-logo">
 
             <h1 class="auth-hero-title">Comunique novidades<br>com impacto.</h1>
 
             <p class="auth-hero-body">
-                Release notes e changelogs bonitos, diretamente no seu produto.
-                Widget embeddable, leve e pronto em minutos.
+                Release notes e changelogs bonitos, banners contextuais e segmentação de audiência,
+                diretamente no seu produto. Uma linha de código para instalar.
             </p>
 
             <div class="auth-feature-list">
@@ -29,12 +29,20 @@
                     <span>Widget assíncrono de menos de 5 KB</span>
                 </div>
                 <div class="auth-feature">
-                    <span class="auth-feature-icon"><i class="fa-solid fa-shield-halved"></i></span>
-                    <span>Multi-tenant com isolamento total de dados</span>
+                    <span class="auth-feature-icon"><i class="fa-solid fa-users-viewfinder"></i></span>
+                    <span>Segmentação de audiência com 13 operadores</span>
+                </div>
+                <div class="auth-feature">
+                    <span class="auth-feature-icon"><i class="fa-solid fa-rectangle-ad"></i></span>
+                    <span>Banners contextuais por regras de URL</span>
                 </div>
                 <div class="auth-feature">
                     <span class="auth-feature-icon"><i class="fa-solid fa-calendar-check"></i></span>
                     <span>Agendamento de publicação sem workers</span>
+                </div>
+                <div class="auth-feature">
+                    <span class="auth-feature-icon"><i class="fa-solid fa-shield-halved"></i></span>
+                    <span>Multi-tenant com isolamento total de dados</span>
                 </div>
                 <div class="auth-feature">
                     <span class="auth-feature-icon"><i class="fa-solid fa-code"></i></span>

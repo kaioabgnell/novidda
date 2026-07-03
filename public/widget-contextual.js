@@ -97,12 +97,10 @@
 
   // ── CSS para o Shadow DOM ─────────────────────────────────────────────────
   function buildCSS(accent, dark) {
-    var bg      = dark ? '#1e1e2e' : '#ffffff';
-    var ink     = dark ? '#e2e2f0' : '#1a1a2e';
-    var mute    = dark ? '#888' : '#888';
-    var shadow  = dark ? '0 4px 24px rgba(0,0,0,.5)' : '0 4px 24px rgba(0,0,0,.18)';
-    var barBg   = accent;
-    var barTxt  = '#ffffff';
+    var bg     = dark ? '#1e1e2e' : '#ffffff';
+    var ink    = dark ? '#e2e2f0' : '#1a1a2e';
+    var mute   = dark ? '#888' : '#888';
+    var shadow = dark ? '0 4px 24px rgba(0,0,0,.5)' : '0 4px 24px rgba(0,0,0,.18)';
     return [
       ':host { all: initial; }',
       '.nv-toast {',
@@ -113,7 +111,7 @@
       '  border-radius: 12px;',
       '  box-shadow: ' + shadow + ';',
       '  padding: 16px 18px 16px 16px;',
-      '  z-index: 2147483640;',
+      '  z-index: 2147483590;',
       '  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;',
       '  font-size: 13px;',
       '  line-height: 1.45;',
@@ -134,13 +132,13 @@
       '.nv-bar {',
       '  position: fixed;',
       '  left: 0; right: 0;',
-      '  background: ' + barBg + ';',
-      '  color: ' + barTxt + ';',
+      '  background: ' + accent + ';',
+      '  color: #ffffff;',
       '  display: flex;',
       '  align-items: center;',
       '  justify-content: space-between;',
       '  padding: 10px 18px;',
-      '  z-index: 2147483640;',
+      '  z-index: 2147483590;',
       '  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;',
       '  font-size: 13px;',
       '  transition: opacity .25s, transform .3s;',
@@ -157,14 +155,22 @@
       '  color: inherit; opacity: .7; flex-shrink: 0;',
       '}',
       '.nv-close:hover { opacity: 1; }',
-      '.nv-copy { flex: 1; font-weight: 600; margin-right: 12px; }',
-      '.nv-toast-copy { font-weight: 600; margin-bottom: 8px; padding-right: 20px; }',
+      '.nv-copy { font-weight: 600; min-width: 0; }',
+      '.nv-toast-row { display: flex; align-items: center; padding-right: 20px; }',
+      '.nv-toast-group { display: flex; align-items: center; gap: 12px; min-width: 0; }',
+      '.nv-toast-text { min-width: 0; }',
+      '.nv-toast-copy { font-weight: 600; }',
+      '.nv-toast-desc { font-size: 12px; opacity: .8; margin-top: 4px; }',
+      '.nv-bar-content { display: flex; align-items: center; flex: 1; min-width: 0; }',
+      '.nv-bar-group { display: flex; align-items: center; gap: 12px; min-width: 0; }',
+      '.nv-bar-actions { display: flex; align-items: center; gap: 12px; flex-shrink: 0; margin-left: 12px; }',
       '.nv-cta {',
-      '  display: inline-block; margin-top: 6px;',
+      '  display: inline-block; margin-top: 8px;',
       '  padding: 6px 14px; border-radius: 6px;',
       '  background: ' + accent + '; color: #fff;',
       '  font-size: 12px; font-weight: 700; text-decoration: none;',
       '  transition: opacity .15s;',
+      '  flex-shrink: 0;',
       '}',
       '.nv-cta:hover { opacity: .85; }',
       '.nv-bar .nv-cta { background: rgba(255,255,255,.25); color: #fff; padding: 5px 12px; margin-top: 0; }',
@@ -174,38 +180,134 @@
       '  font-size: 17px; line-height: 1; color: ' + mute + ';',
       '}',
       '.nv-x:hover { color: ' + ink + '; }',
+      '.nv-countdown { display: flex; gap: 6px; flex-shrink: 0; }',
+      '.nv-cd-box { border: 1px solid currentColor; opacity: .9; border-radius: 6px; padding: 3px 6px; min-width: 28px; text-align: center; }',
+      '.nv-cd-num { font-size: 13px; font-weight: 700; line-height: 1.2; }',
+      '.nv-cd-lbl { font-size: 8px; text-transform: uppercase; letter-spacing: .03em; opacity: .75; margin-top: 2px; }',
     ].join('\n');
+  }
+
+  // ── Contador regressivo ───────────────────────────────────────────────────
+  function pad2(n) { return (n < 10 ? '0' : '') + n; }
+  function formatCountdownParts(ms) {
+    if (ms <= 0) return null;
+    var totalSec = Math.floor(ms / 1000);
+    return {
+      days:  Math.floor(totalSec / 86400),
+      hours: Math.floor((totalSec % 86400) / 3600),
+      mins:  Math.floor((totalSec % 3600) / 60),
+      secs:  totalSec % 60,
+    };
+  }
+  function countdownBoxesHtml(parts) {
+    return (
+      '<div class="nv-cd-box"><div class="nv-cd-num">' + pad2(parts.days)  + '</div><div class="nv-cd-lbl">dias</div></div>' +
+      '<div class="nv-cd-box"><div class="nv-cd-num">' + pad2(parts.hours) + '</div><div class="nv-cd-lbl">hs</div></div>' +
+      '<div class="nv-cd-box"><div class="nv-cd-num">' + pad2(parts.mins)  + '</div><div class="nv-cd-lbl">min</div></div>' +
+      '<div class="nv-cd-box"><div class="nv-cd-num">' + pad2(parts.secs)  + '</div><div class="nv-cd-lbl">seg</div></div>'
+    );
+  }
+  // Alinhamento controla a posição do bloco (título+descrição+contador) como um todo.
+  function alignToJustify(align) {
+    if (align === 'center') return 'center';
+    if (align === 'right')  return 'flex-end';
+    return 'flex-start';
   }
 
   // ── Renderiza um banner ───────────────────────────────────────────────────
   function renderBanner(banner, state, shadowRoot) {
     var accent = nv.accent || '#7B61FF';
-    var dark   = document.body.classList.contains('dark');
 
     var el = document.createElement('div');
 
-    // API: banner.copy = { title, description, icon }, banner.cta = { text, url, new_tab } | null
-    var copyText = (banner.copy && banner.copy.title) ? banner.copy.title : '';
-    var ctaText  = banner.cta ? banner.cta.text : null;
+    var copyText = (banner.copy && banner.copy.title)       ? banner.copy.title       : '';
+    var descText = (banner.copy && banner.copy.description) ? banner.copy.description : '';
+    var ctaText  = banner.cta ? banner.cta.text    : null;
     var ctaUrl   = banner.cta ? (banner.cta.url || '#') : '#';
     var ctaNew   = banner.cta ? !!banner.cta.new_tab : false;
 
+    var titleAlign = (banner.copy && banner.copy.title_align)       ? banner.copy.title_align       : 'left';
+    var descAlign  = (banner.copy && banner.copy.description_align) ? banner.copy.description_align : 'left';
+
+    var colors   = banner.colors || {};
+    var bgColor  = colors.bg   || null;
+    var txtColor = colors.text || null;
+    var ctaBtnColor = (banner.cta && banner.cta.color) ? banner.cta.color : null;
+
+    var countdownTargetMs = (banner.countdown && banner.countdown.target_at) ? new Date(banner.countdown.target_at).getTime() : null;
+    var countdownParts    = countdownTargetMs ? formatCountdownParts(countdownTargetMs - Date.now()) : null;
+    var countdownHtml     = countdownParts ? '<div class="nv-countdown">' + countdownBoxesHtml(countdownParts) + '</div>' : '';
+
+    // O alinhamento do título posiciona o bloco inteiro (título+descrição+contador);
+    // o alinhamento da descrição controla apenas a justificação do texto dela.
+    var groupJustify = alignToJustify(titleAlign);
+
     if (banner.style === 'toast') {
       el.className = 'nv-toast nv-' + (banner.position || 'bottom_right').replace(/_/g, '-');
+      if (bgColor)  el.style.background   = bgColor;
+      if (txtColor) el.style.color        = txtColor;
+      if (bgColor)  el.style.borderLeftColor = bgColor;
       el.innerHTML =
-        '<div class="nv-toast-copy">' + escHtml(copyText) + '</div>' +
-        (ctaText ? '<a class="nv-cta" href="' + escAttr(ctaUrl) + '"' + (ctaNew ? ' target="_blank" rel="noopener"' : '') + '>' + escHtml(ctaText) + '</a>' : '') +
+        '<div class="nv-toast-row" style="justify-content:' + groupJustify + ';">' +
+          '<div class="nv-toast-group">' +
+            '<div class="nv-toast-text">' +
+              '<div class="nv-toast-copy" style="text-align:' + titleAlign + ';">' + escHtml(copyText) + '</div>' +
+              (descText ? '<div class="nv-toast-desc" style="text-align:' + descAlign + ';">' + escHtml(descText) + '</div>' : '') +
+            '</div>' +
+            countdownHtml +
+          '</div>' +
+        '</div>' +
+        (ctaText
+          ? '<a class="nv-cta" href="' + escAttr(ctaUrl) + '"' +
+            (ctaNew ? ' target="_blank" rel="noopener"' : '') +
+            (ctaBtnColor ? ' style="background:' + escAttr(ctaBtnColor) + ';"' : '') +
+            '>' + escHtml(ctaText) + '</a>'
+          : '') +
         '<button class="nv-x" aria-label="Fechar">&times;</button>';
     } else {
       var barCls = banner.style === 'top_bar' ? 'nv-bar nv-top-bar' : 'nv-bar nv-bottom-bar';
       el.className = barCls;
+      if (bgColor)  el.style.background = bgColor;
+      if (txtColor) el.style.color      = txtColor;
       el.innerHTML =
-        '<span class="nv-copy">' + escHtml(copyText) + '</span>' +
-        (ctaText ? '<a class="nv-cta" href="' + escAttr(ctaUrl) + '"' + (ctaNew ? ' target="_blank" rel="noopener"' : '') + '>' + escHtml(ctaText) + '</a>' : '') +
-        '<button class="nv-close" aria-label="Fechar">&times;</button>';
+        '<div class="nv-bar-content" style="justify-content:' + groupJustify + ';">' +
+          '<div class="nv-bar-group">' +
+            '<div class="nv-copy">' +
+              '<div style="text-align:' + titleAlign + ';">' + escHtml(copyText) + '</div>' +
+              (descText ? '<div style="font-size:11px;font-weight:400;opacity:.8;margin-top:2px;text-align:' + descAlign + ';">' + escHtml(descText) + '</div>' : '') +
+            '</div>' +
+            countdownHtml +
+          '</div>' +
+        '</div>' +
+        '<div class="nv-bar-actions">' +
+          (ctaText
+            ? '<a class="nv-cta" href="' + escAttr(ctaUrl) + '"' +
+              (ctaNew ? ' target="_blank" rel="noopener"' : '') +
+              (ctaBtnColor ? ' style="background:' + escAttr(ctaBtnColor) + ';color:#fff;"' : '') +
+              '>' + escHtml(ctaText) + '</a>'
+            : '') +
+          '<button class="nv-close" aria-label="Fechar">&times;</button>' +
+        '</div>';
     }
 
     shadowRoot.appendChild(el);
+
+    // Atualiza o contador a cada segundo
+    var cdInterval = null;
+    if (countdownTargetMs) {
+      var cdEl = el.querySelector('.nv-countdown');
+      if (cdEl) {
+        cdInterval = setInterval(function () {
+          var parts = formatCountdownParts(countdownTargetMs - Date.now());
+          if (!parts) {
+            clearInterval(cdInterval);
+            if (cdEl.parentNode) cdEl.parentNode.removeChild(cdEl);
+            return;
+          }
+          cdEl.innerHTML = countdownBoxesHtml(parts);
+        }, 1000);
+      }
+    }
 
     // Anima entrada
     requestAnimationFrame(function () {
@@ -224,6 +326,7 @@
 
     function dismissEl(element, b, s, clicked) {
       if (dismissTimer) clearTimeout(dismissTimer);
+      if (cdInterval) clearInterval(cdInterval);
       element.classList.remove('nv-in');
       setTimeout(function () {
         if (element.parentNode) element.parentNode.removeChild(element);

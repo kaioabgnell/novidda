@@ -14,8 +14,9 @@ class ContextualBanner extends Model
     protected $fillable = [
         'changelog_id', 'enabled', 'style', 'position',
         'frequency', 'frequency_cap', 'auto_dismiss_seconds',
-        'expires_at', 'custom_copy',
-        'cta_text', 'cta_url', 'cta_new_tab',
+        'expires_at', 'custom_copy', 'bg_color', 'text_color', 'description',
+        'cta_text', 'cta_url', 'cta_color', 'cta_new_tab',
+        'countdown_enabled', 'countdown_target_at', 'title_align', 'description_align',
     ];
 
     protected $casts = [
@@ -24,6 +25,8 @@ class ContextualBanner extends Model
         'expires_at'   => 'datetime',
         'frequency_cap' => 'integer',
         'auto_dismiss_seconds' => 'integer',
+        'countdown_enabled'   => 'boolean',
+        'countdown_target_at' => 'datetime',
     ];
 
     public function changelog(): BelongsTo

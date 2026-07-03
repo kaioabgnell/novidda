@@ -195,8 +195,16 @@ class ChangelogController extends Controller
                 'cta_url'              => filter_var($bannerRaw['cta_url'] ?? '', FILTER_VALIDATE_URL) ? $bannerRaw['cta_url'] : null,
                 'cta_color'            => preg_match('/^#[0-9a-fA-F]{3,8}$/', $bannerRaw['cta_color'] ?? '') ? $bannerRaw['cta_color'] : null,
                 'cta_new_tab'          => (bool) ($bannerRaw['cta_new_tab'] ?? false),
+                'countdown_enabled'    => (bool) ($bannerRaw['countdown_enabled'] ?? false),
+                'countdown_target_at'  => filled($bannerRaw['countdown_target_at'] ?? '') ? $bannerRaw['countdown_target_at'] : null,
+                'title_align'          => in_array($bannerRaw['title_align'] ?? '', ['left', 'center', 'right'], true) ? $bannerRaw['title_align'] : 'left',
+                'description_align'    => in_array($bannerRaw['description_align'] ?? '', ['left', 'center', 'right'], true) ? $bannerRaw['description_align'] : 'left',
                 'rules'                => $validRules,
             ];
+
+            if (! $banner['countdown_enabled']) {
+                $banner['countdown_target_at'] = null;
+            }
         }
 
         // Segmentação: processa as regras

@@ -1,6 +1,495 @@
-<html>
-    <body>
-        <h1>teste</h1>
-        <script src="http://127.0.0.1:8000/widget.js?token=pFv14aDYmgbgV9UfXqwmYkDw48DlhgHQ4eu7uyCq" async></script>
-    </body>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hype Social — Relatórios</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --brand: #4f46e5;
+            --brand-light: #eef2ff;
+            --sidebar-w: 220px;
+            --top-h: 56px;
+            --bg: #f5f6fa;
+            --card: #ffffff;
+            --border: #e5e7eb;
+            --ink: #111827;
+            --mute: #6b7280;
+            --positive: #10b981;
+            --negative: #ef4444;
+            --warn: #f59e0b;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--ink);
+            font-size: 14px;
+            min-height: 100vh;
+        }
+
+        /* ── Topbar ── */
+        .topbar {
+            position: fixed; top: 0; left: 0; right: 0;
+            height: var(--top-h);
+            background: var(--card);
+            border-bottom: 1px solid var(--border);
+            display: flex; align-items: center;
+            padding: 0 24px;
+            z-index: 100;
+            gap: 16px;
+        }
+        .topbar-logo {
+            display: flex; align-items: center; gap: 8px;
+            font-weight: 800; font-size: 16px; color: var(--brand);
+            text-decoration: none; flex-shrink: 0;
+        }
+        .topbar-logo svg { width: 28px; height: 28px; }
+        .topbar-divider { width: 1px; height: 24px; background: var(--border); }
+        .topbar-title { font-size: 14px; color: var(--mute); }
+        .topbar-spacer { flex: 1; }
+        .topbar-search {
+            display: flex; align-items: center; gap: 8px;
+            background: var(--bg); border: 1px solid var(--border);
+            border-radius: 8px; padding: 6px 12px;
+            font-size: 13px; color: var(--mute);
+            width: 220px;
+        }
+        .topbar-search svg { width: 14px; height: 14px; flex-shrink: 0; }
+        .avatar {
+            width: 34px; height: 34px; border-radius: 50%;
+            background: var(--brand); color: #fff;
+            font-size: 13px; font-weight: 700;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0; cursor: pointer;
+        }
+        .topbar-notif {
+            width: 34px; height: 34px; border-radius: 8px;
+            background: var(--bg); border: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; position: relative; flex-shrink: 0;
+        }
+        .topbar-notif svg { width: 16px; height: 16px; color: var(--mute); }
+        .notif-dot {
+            position: absolute; top: 6px; right: 6px;
+            width: 7px; height: 7px; border-radius: 50%;
+            background: var(--negative); border: 1.5px solid white;
+        }
+
+        /* ── Layout ── */
+        .layout { display: flex; padding-top: var(--top-h); min-height: 100vh; }
+
+        /* ── Sidebar ── */
+        .sidebar {
+            position: fixed; top: var(--top-h); left: 0; bottom: 0;
+            width: var(--sidebar-w);
+            background: var(--card);
+            border-right: 1px solid var(--border);
+            padding: 20px 12px;
+            overflow-y: auto;
+            z-index: 90;
+        }
+        .nav-section { margin-bottom: 24px; }
+        .nav-section-label {
+            font-size: 10px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: .06em; color: var(--mute);
+            padding: 0 8px; margin-bottom: 6px;
+        }
+        .nav-item {
+            display: flex; align-items: center; gap: 10px;
+            padding: 8px 10px; border-radius: 8px;
+            font-size: 13px; font-weight: 500; color: var(--mute);
+            cursor: pointer; text-decoration: none;
+            transition: background .1s, color .1s;
+            margin-bottom: 2px;
+        }
+        .nav-item:hover { background: var(--bg); color: var(--ink); }
+        .nav-item.active { background: var(--brand-light); color: var(--brand); font-weight: 600; }
+        .nav-item svg { width: 16px; height: 16px; flex-shrink: 0; }
+
+        /* ── Main ── */
+        .main {
+            flex: 1;
+            margin-left: var(--sidebar-w);
+            padding: 32px 32px 80px;
+        }
+
+        /* ── Page header ── */
+        .page-hd {
+            display: flex; align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: 28px; gap: 16px;
+        }
+        .page-hd h1 { font-size: 22px; font-weight: 700; }
+        .page-hd p { font-size: 13px; color: var(--mute); margin-top: 3px; }
+        .btn {
+            display: inline-flex; align-items: center; gap: 7px;
+            padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600;
+            cursor: pointer; border: none; text-decoration: none; white-space: nowrap;
+        }
+        .btn-primary { background: var(--brand); color: #fff; }
+        .btn-outline { background: var(--card); color: var(--ink); border: 1px solid var(--border); }
+        .btn svg { width: 15px; height: 15px; }
+
+        /* ── Date range bar ── */
+        .date-bar {
+            display: flex; align-items: center; gap: 8px;
+            margin-bottom: 24px; flex-wrap: wrap;
+        }
+        .date-chip {
+            padding: 5px 14px; border-radius: 20px; font-size: 12px; font-weight: 600;
+            cursor: pointer; border: 1px solid var(--border); background: var(--card);
+            color: var(--mute); transition: all .1s;
+        }
+        .date-chip.active { background: var(--brand); color: #fff; border-color: var(--brand); }
+
+        /* ── KPI cards ── */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px; margin-bottom: 24px;
+        }
+        @media (max-width: 1100px) { .kpi-grid { grid-template-columns: repeat(2, 1fr); } }
+        .kpi-card {
+            background: var(--card); border: 1px solid var(--border);
+            border-radius: 12px; padding: 20px;
+        }
+        .kpi-label { font-size: 12px; font-weight: 600; color: var(--mute); margin-bottom: 10px; }
+        .kpi-value { font-size: 28px; font-weight: 800; color: var(--ink); line-height: 1; }
+        .kpi-delta {
+            display: inline-flex; align-items: center; gap: 4px;
+            font-size: 12px; font-weight: 600; margin-top: 8px;
+            padding: 2px 7px; border-radius: 99px;
+        }
+        .kpi-delta.up { background: rgba(16,185,129,.1); color: var(--positive); }
+        .kpi-delta.down { background: rgba(239,68,68,.1); color: var(--negative); }
+        .kpi-delta svg { width: 11px; height: 11px; }
+
+        /* ── Chart placeholder ── */
+        .chart-row { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 24px; }
+        @media (max-width: 1000px) { .chart-row { grid-template-columns: 1fr; } }
+        .card {
+            background: var(--card); border: 1px solid var(--border);
+            border-radius: 12px; padding: 20px;
+        }
+        .card-title {
+            font-size: 14px; font-weight: 700; margin-bottom: 16px;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .card-title span { font-size: 12px; font-weight: 500; color: var(--mute); }
+        .chart-area {
+            height: 200px; border-radius: 8px;
+            background: linear-gradient(135deg, #eef2ff 0%, #f5f3ff 100%);
+            display: flex; align-items: flex-end; justify-content: space-around;
+            padding: 16px 8px 0; gap: 6px; overflow: hidden;
+        }
+        .chart-bar {
+            flex: 1; border-radius: 4px 4px 0 0;
+            background: linear-gradient(to top, var(--brand), #818cf8);
+            opacity: .85; min-width: 0;
+            transition: opacity .15s;
+        }
+        .chart-bar:hover { opacity: 1; }
+        .donut-wrap {
+            display: flex; flex-direction: column; align-items: center;
+            justify-content: center; height: 200px; gap: 16px;
+        }
+        .donut {
+            width: 120px; height: 120px; border-radius: 50%;
+            background: conic-gradient(
+                var(--brand) 0% 42%,
+                #818cf8 42% 65%,
+                #a5b4fc 65% 80%,
+                #e0e7ff 80% 100%
+            );
+            display: flex; align-items: center; justify-content: center;
+            position: relative;
+        }
+        .donut::after {
+            content: ''; position: absolute;
+            width: 68px; height: 68px; border-radius: 50%;
+            background: var(--card);
+        }
+        .donut-legend { display: flex; flex-direction: column; gap: 6px; width: 100%; }
+        .legend-item { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+        .legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+        /* ── Table ── */
+        .table-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+        .table-hd {
+            padding: 16px 20px; border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .table-hd-title { font-size: 14px; font-weight: 700; }
+        table { width: 100%; border-collapse: collapse; }
+        th {
+            text-align: left; font-size: 11px; font-weight: 700;
+            text-transform: uppercase; letter-spacing: .05em;
+            color: var(--mute); padding: 10px 20px;
+            background: var(--bg); border-bottom: 1px solid var(--border);
+        }
+        td { padding: 13px 20px; font-size: 13px; color: var(--ink); }
+        tr + tr td { border-top: 1px solid var(--border); }
+        tr:hover td { background: #fafafa; }
+        .badge {
+            display: inline-block; padding: 2px 9px;
+            font-size: 11px; font-weight: 700; border-radius: 99px;
+        }
+        .badge-green { background: rgba(16,185,129,.12); color: #059669; }
+        .badge-yellow { background: rgba(245,158,11,.12); color: #d97706; }
+        .badge-red { background: rgba(239,68,68,.12); color: #dc2626; }
+        .badge-gray { background: var(--bg); color: var(--mute); }
+        .progress-bar-wrap { background: var(--bg); border-radius: 99px; height: 6px; width: 100px; }
+        .progress-bar { height: 6px; border-radius: 99px; background: var(--brand); }
+        .td-mute { color: var(--mute); }
+    </style>
+</head>
+<body>
+
+<!-- Topbar -->
+<header class="topbar">
+    <a class="topbar-logo" href="#">
+        <svg viewBox="0 0 28 28" fill="none">
+            <rect width="28" height="28" rx="7" fill="#4f46e5"/>
+            <path d="M7 14 L14 7 L21 14 L14 21 Z" fill="white" opacity=".9"/>
+            <circle cx="14" cy="14" r="3" fill="white"/>
+        </svg>
+        Hype Social
+    </a>
+    <div class="topbar-divider"></div>
+    <span class="topbar-title">Relatórios &amp; Analytics</span>
+    <div class="topbar-spacer"></div>
+    <div class="topbar-search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+        Buscar relatório…
+    </div>
+    <div class="topbar-notif">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <span class="notif-dot"></span>
+    </div>
+    <div class="avatar">KG</div>
+</header>
+
+<div class="layout">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="nav-section">
+            <div class="nav-section-label">Principal</div>
+            <a class="nav-item" href="#">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                Dashboard
+            </a>
+            <a class="nav-item active" href="#">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+                Relatórios
+            </a>
+            <a class="nav-item" href="#">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                Clientes
+            </a>
+            <a class="nav-item" href="#">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+                Histórico
+            </a>
+        </div>
+        <div class="nav-section">
+            <div class="nav-section-label">Financeiro</div>
+            <a class="nav-item" href="#">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                Faturamento
+            </a>
+            <a class="nav-item" href="#">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                Faturas
+            </a>
+        </div>
+        <div class="nav-section">
+            <div class="nav-section-label">Sistema</div>
+            <a class="nav-item" href="#">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+                Integrações
+            </a>
+            <a class="nav-item" href="#">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M19.07 19.07l-1.41-1.41M4.93 19.07l1.41-1.41M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>
+                Configurações
+            </a>
+        </div>
+    </aside>
+
+    <!-- Main content -->
+    <main class="main">
+
+        <!-- Page header -->
+        <div class="page-hd">
+            <div>
+                <h1>Relatórios</h1>
+                <p>Visão geral de desempenho e conversão — atualizado há 3 min.</p>
+            </div>
+            <div style="display:flex;gap:8px;">
+                <button class="btn btn-outline">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    Exportar
+                </button>
+                <button class="btn btn-primary">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    Novo relatório
+                </button>
+            </div>
+        </div>
+
+        <!-- Date chips -->
+        <div class="date-bar">
+            <span style="font-size:12px;color:var(--mute);font-weight:600;margin-right:4px;">Período:</span>
+            <span class="date-chip">Hoje</span>
+            <span class="date-chip">7 dias</span>
+            <span class="date-chip active">30 dias</span>
+            <span class="date-chip">90 dias</span>
+            <span class="date-chip">Este ano</span>
+        </div>
+
+        <!-- KPI cards -->
+        <div class="kpi-grid">
+            <div class="kpi-card">
+                <div class="kpi-label">RECEITA TOTAL</div>
+                <div class="kpi-value">R$ 84.320</div>
+                <span class="kpi-delta up">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="18 15 12 9 6 15"/></svg>
+                    +12,4%
+                </span>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">NOVOS CLIENTES</div>
+                <div class="kpi-value">1.247</div>
+                <span class="kpi-delta up">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="18 15 12 9 6 15"/></svg>
+                    +8,1%
+                </span>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">TAXA DE CONVERSÃO</div>
+                <div class="kpi-value">3,6%</div>
+                <span class="kpi-delta down">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="6 9 12 15 18 9"/></svg>
+                    -0,3%
+                </span>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">TICKET MÉDIO</div>
+                <div class="kpi-value">R$ 214</div>
+                <span class="kpi-delta up">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="18 15 12 9 6 15"/></svg>
+                    +5,7%
+                </span>
+            </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="chart-row">
+            <div class="card">
+                <div class="card-title">Receita por período <span>últimos 12 meses</span></div>
+                <div class="chart-area">
+                    <div class="chart-bar" style="height:55%"></div>
+                    <div class="chart-bar" style="height:40%"></div>
+                    <div class="chart-bar" style="height:65%"></div>
+                    <div class="chart-bar" style="height:50%"></div>
+                    <div class="chart-bar" style="height:72%"></div>
+                    <div class="chart-bar" style="height:60%"></div>
+                    <div class="chart-bar" style="height:80%"></div>
+                    <div class="chart-bar" style="height:68%"></div>
+                    <div class="chart-bar" style="height:75%"></div>
+                    <div class="chart-bar" style="height:88%"></div>
+                    <div class="chart-bar" style="height:95%"></div>
+                    <div class="chart-bar" style="height:100%;opacity:1;"></div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-title">Origem dos clientes</div>
+                <div class="donut-wrap">
+                    <div class="donut"></div>
+                    <div class="donut-legend">
+                        <div class="legend-item"><span class="legend-dot" style="background:#4f46e5"></span><span>Orgânico — 42%</span></div>
+                        <div class="legend-item"><span class="legend-dot" style="background:#818cf8"></span><span>Pago — 23%</span></div>
+                        <div class="legend-item"><span class="legend-dot" style="background:#a5b4fc"></span><span>Indicação — 15%</span></div>
+                        <div class="legend-item"><span class="legend-dot" style="background:#e0e7ff"></span><span>Direto — 20%</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Table -->
+        <div class="table-card">
+            <div class="table-hd">
+                <span class="table-hd-title">Campanhas recentes</span>
+                <button class="btn btn-outline" style="font-size:12px;padding:5px 12px;">Ver todas</button>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Campanha</th>
+                        <th>Status</th>
+                        <th>Alcance</th>
+                        <th>Conversões</th>
+                        <th>Progresso</th>
+                        <th>Receita</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td style="font-weight:600;">Black Friday 2025</td>
+                        <td><span class="badge badge-green">Ativa</span></td>
+                        <td class="td-mute">48.320</td>
+                        <td>1.740</td>
+                        <td><div class="progress-bar-wrap"><div class="progress-bar" style="width:74%"></div></div></td>
+                        <td style="font-weight:600;">R$ 22.480</td>
+                    </tr>
+                    <tr>
+                        <td style="font-weight:600;">Lançamento v3.0</td>
+                        <td><span class="badge badge-yellow">Pausada</span></td>
+                        <td class="td-mute">21.100</td>
+                        <td>890</td>
+                        <td><div class="progress-bar-wrap"><div class="progress-bar" style="width:48%"></div></div></td>
+                        <td style="font-weight:600;">R$ 11.200</td>
+                    </tr>
+                    <tr>
+                        <td style="font-weight:600;">Reativação Q3</td>
+                        <td><span class="badge badge-green">Ativa</span></td>
+                        <td class="td-mute">14.600</td>
+                        <td>512</td>
+                        <td><div class="progress-bar-wrap"><div class="progress-bar" style="width:61%"></div></div></td>
+                        <td style="font-weight:600;">R$ 7.840</td>
+                    </tr>
+                    <tr>
+                        <td style="font-weight:600;">Webinar Outubro</td>
+                        <td><span class="badge badge-gray">Encerrada</span></td>
+                        <td class="td-mute">9.200</td>
+                        <td>340</td>
+                        <td><div class="progress-bar-wrap"><div class="progress-bar" style="width:100%"></div></div></td>
+                        <td style="font-weight:600;">R$ 4.900</td>
+                    </tr>
+                    <tr>
+                        <td style="font-weight:600;">Upsell Enterprise</td>
+                        <td><span class="badge badge-red">Rascunho</span></td>
+                        <td class="td-mute">—</td>
+                        <td>—</td>
+                        <td><div class="progress-bar-wrap"><div class="progress-bar" style="width:0%"></div></div></td>
+                        <td style="font-weight:600;">—</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+    </main>
+</div>
+
+<!-- Novidda Widget -->
+<script src="http://127.0.0.1:8000/widget.js?token=pFv14aDYmgbgV9UfXqwmYkDw48DlhgHQ4eu7uyCq" async></script>
+<!-- Cole antes do </body> -->
+<script src="http://127.0.0.1:8001/widget.js"
+        data-token="pFv14aDYmgbgV9UfXqwmYkDw48DlhgHQ4eu7uyCq"
+        async></script>
+
+</body>
 </html>

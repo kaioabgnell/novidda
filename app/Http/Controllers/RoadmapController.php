@@ -11,7 +11,12 @@ class RoadmapController extends Controller
 {
     public function index()
     {
-        $items = RoadmapItem::withCount(['feedbacks', 'comments'])
+        $items = RoadmapItem::withCount([
+            'feedbacks',
+            'comments',
+            'votes as votes_up_count'   => fn ($q) => $q->where('vote', 'up'),
+            'votes as votes_down_count' => fn ($q) => $q->where('vote', 'down'),
+        ])
             ->latest()
             ->paginate(20);
 
@@ -21,9 +26,11 @@ class RoadmapController extends Controller
     public function create()
     {
         return view('roadmap.form', [
-            'item'      => new RoadmapItem(['status' => 'analyzing', 'feedback_enabled' => true]),
+            'item'      => new RoadmapItem(['status' => 'analyzing', 'feedback_enabled' => true, 'voting_enabled' => false]),
             'feedbacks' => collect(),
             'comments'  => collect(),
+            'votesUp'   => 0,
+            'votesDown' => 0,
         ]);
     }
 
@@ -40,8 +47,10 @@ class RoadmapController extends Controller
     {
         $feedbacks = $roadmap->feedbacks()->latest()->get();
         $comments  = $roadmap->comments()->latest()->get();
+        $votesUp   = $roadmap->votes()->where('vote', 'up')->count();
+        $votesDown = $roadmap->votes()->where('vote', 'down')->count();
 
-        return view('roadmap.form', compact('roadmap', 'feedbacks', 'comments') + ['item' => $roadmap]);
+        return view('roadmap.form', compact('roadmap', 'feedbacks', 'comments', 'votesUp', 'votesDown') + ['item' => $roadmap]);
     }
 
     public function update(Request $request, RoadmapItem $roadmap)
@@ -66,8 +75,9 @@ class RoadmapController extends Controller
         $v = $request->validate([
             'title'            => ['required', 'string', 'max:255'],
             'description'      => ['nullable', 'string'],
-            'status'           => ['required', 'in:analyzing,developing'],
+            'status'           => ['required', 'in:analyzing,developing,planned'],
             'feedback_enabled' => ['nullable', 'boolean'],
+            'voting_enabled'   => ['nullable', 'boolean'],
             'published_at'     => ['nullable', 'date'],
         ], [], ['title' => 'título', 'status' => 'andamento']);
 
@@ -76,6 +86,7 @@ class RoadmapController extends Controller
             'description'      => HtmlSanitizer::clean($v['description'] ?? ''),
             'status'           => $v['status'],
             'feedback_enabled' => $request->boolean('feedback_enabled'),
+            'voting_enabled'   => $request->boolean('voting_enabled'),
             'published_at'     => $v['published_at'] ?? now(),
         ];
     }

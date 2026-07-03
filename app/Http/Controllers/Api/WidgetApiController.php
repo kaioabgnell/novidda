@@ -16,6 +16,7 @@ use App\Models\Read;
 use App\Models\RoadmapComment;
 use App\Models\RoadmapFeedback;
 use App\Models\RoadmapItem;
+use App\Models\RoadmapVote;
 use App\Models\WidgetEvent;
 use App\Models\WidgetFeedback;
 use App\Services\SegmentMatcher;
@@ -318,7 +319,11 @@ class WidgetApiController extends Controller
 
         $payload = Cache::remember(WidgetCache::key($account->id, 'roadmap'), now()->addMinutes(10), function () {
             return RoadmapItem::published()
-                ->withCount('feedbacks')
+                ->withCount([
+                    'feedbacks',
+                    'votes as votes_up_count'   => fn ($q) => $q->where('vote', 'up'),
+                    'votes as votes_down_count' => fn ($q) => $q->where('vote', 'down'),
+                ])
                 ->orderByDesc('published_at')
                 ->limit(30)
                 ->get()
@@ -329,6 +334,9 @@ class WidgetApiController extends Controller
                     'status'           => $item->status,
                     'feedback_enabled' => (bool) $item->feedback_enabled,
                     'feedbacks_count'  => $item->feedbacks_count,
+                    'voting_enabled'   => (bool) $item->voting_enabled,
+                    'votes_up'         => $item->votes_up_count,
+                    'votes_down'       => $item->votes_down_count,
                     'published_at'     => $item->published_at?->toIso8601String(),
                 ])
                 ->all();
@@ -406,6 +414,49 @@ class WidgetApiController extends Controller
         ]);
 
         return response()->json(['ok' => true, 'pending' => true]);
+    }
+
+    /** Registra/alterna voto (like/dislike) em item de roadmap. Um voto por leitor por item. */
+    public function roadmapVote(Request $request): JsonResponse
+    {
+        $readerId = $this->readerId($request);
+
+        $data = $request->validate([
+            'roadmap_item_id' => ['required', 'integer'],
+            'vote'            => ['required', 'string', 'in:up,down'],
+        ]);
+
+        $item = RoadmapItem::published()->find($data['roadmap_item_id']);
+        abort_unless($item, 404);
+        abort_unless($item->voting_enabled, 403);
+
+        $existing = RoadmapVote::where('roadmap_item_id', $item->id)
+            ->where('reader_id', $readerId)
+            ->first();
+
+        if ($existing && $existing->vote === $data['vote']) {
+            $existing->delete();
+            $currentVote = null;
+        } elseif ($existing) {
+            $existing->update(['vote' => $data['vote']]);
+            $currentVote = $data['vote'];
+        } else {
+            RoadmapVote::create([
+                'roadmap_item_id' => $item->id,
+                'reader_id'       => $readerId,
+                'vote'            => $data['vote'],
+            ]);
+            $currentVote = $data['vote'];
+        }
+
+        WidgetCache::bump($this->account($request)->id);
+
+        return response()->json([
+            'ok'         => true,
+            'vote'       => $currentVote,
+            'votes_up'   => $item->votes()->where('vote', 'up')->count(),
+            'votes_down' => $item->votes()->where('vote', 'down')->count(),
+        ]);
     }
 
     /** Lista banners contextuais ativos — cacheado 5 min + ETag. */
@@ -531,14 +582,19 @@ class WidgetApiController extends Controller
             'auto_dismiss_seconds'  => $b->auto_dismiss_seconds,
             'expires_at'            => $b->expires_at?->toIso8601String(),
             'copy' => [
-                'title'       => $b->custom_copy ?: $c->title,
-                'description' => $b->description ?: null,
-                'icon'        => $typeIcons[$c->type] ?? null,
+                'title'             => $b->custom_copy ?: $c->title,
+                'description'       => $b->description ?: null,
+                'icon'              => $typeIcons[$c->type] ?? null,
+                'title_align'       => $b->title_align ?: 'left',
+                'description_align' => $b->description_align ?: 'left',
             ],
             'colors' => [
                 'bg'   => $b->bg_color ?: null,
                 'text' => $b->text_color ?: null,
             ],
+            'countdown' => ($b->countdown_enabled && $b->countdown_target_at) ? [
+                'target_at' => $b->countdown_target_at->toIso8601String(),
+            ] : null,
             'cta' => $b->cta_text ? [
                 'text'    => $b->cta_text,
                 'url'     => $b->cta_url ?? '#',

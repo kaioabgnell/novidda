@@ -42,16 +42,26 @@
                                 <span style="font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;background:#f9731622;color:#f97316;">
                                     Em análise
                                 </span>
-                            @else
+                            @elseif ($item->status === 'developing')
                                 <span style="font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;background:#3b82f622;color:#3b82f6;">
                                     Em desenvolvimento
                                 </span>
+                            @else
+                                <span style="font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;background:#8b5cf622;color:#8b5cf6;">
+                                    Planejado
+                                </span>
                             @endif
                         </td>
-                        <td style="font-size:13px;color:var(--mute);">
+                        <td style="font-size:13px;color:var(--mute);white-space:nowrap;">
                             <i class="fa-solid fa-face-smile" style="color:var(--primary);margin-right:3px;"></i>{{ $item->feedbacks_count }}
                             &nbsp;
                             <i class="fa-solid fa-comment" style="color:var(--primary);margin-right:3px;"></i>{{ $item->comments_count }}
+                            @if ($item->voting_enabled)
+                                &nbsp;
+                                <i class="fa-solid fa-thumbs-up" style="color:#10b981;margin-right:3px;"></i>{{ $item->votes_up_count }}
+                                &nbsp;
+                                <i class="fa-solid fa-thumbs-down" style="color:#ef4444;margin-right:3px;"></i>{{ $item->votes_down_count }}
+                            @endif
                         </td>
                         <td style="font-size:13px;color:var(--mute);">
                             {{ $item->published_at?->format('d/m/Y H:i') ?? '—' }}

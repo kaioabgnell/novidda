@@ -33,6 +33,7 @@ Route::prefix('v1/widget/{token}')
         Route::get('roadmap', [WidgetApiController::class, 'roadmapFeed']);
         Route::post('roadmap-feedback', [WidgetApiController::class, 'roadmapFeedback']);
         Route::post('roadmap-comment', [WidgetApiController::class, 'roadmapComment']);
+        Route::post('roadmap-vote', [WidgetApiController::class, 'roadmapVote']);
         Route::get('contextual', [WidgetApiController::class, 'contextual']);
         Route::post('contextual/event', [WidgetApiController::class, 'contextualEvent'])
             ->middleware('throttle:60,1');

@@ -1,4 +1,4 @@
-# Novidda — Banner Contextual
+ pox  # Novidda — Banner Contextual
 
 > Especificação completa de implementação — MVP e Fase 2
 > Estilos suportados: **toast no canto, barra superior, barra inferior**

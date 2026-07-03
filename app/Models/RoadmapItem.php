@@ -12,11 +12,12 @@ class RoadmapItem extends Model
     use BelongsToAccount;
 
     protected $fillable = [
-        'account_id', 'title', 'description', 'status', 'feedback_enabled', 'published_at',
+        'account_id', 'title', 'description', 'status', 'feedback_enabled', 'voting_enabled', 'published_at',
     ];
 
     protected $casts = [
         'feedback_enabled' => 'boolean',
+        'voting_enabled'   => 'boolean',
         'published_at'     => 'datetime',
     ];
 
@@ -33,5 +34,10 @@ class RoadmapItem extends Model
     public function comments(): HasMany
     {
         return $this->hasMany(RoadmapComment::class);
+    }
+
+    public function votes(): HasMany
+    {
+        return $this->hasMany(RoadmapVote::class);
     }
 }

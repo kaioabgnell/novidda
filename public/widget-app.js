@@ -41,6 +41,14 @@
     announcement: '#8b5cf6'
   };
 
+  var RM_STATUS_LABELS = {
+    analyzing:  'Em análise',
+    developing: 'Em desenvolvimento',
+    planned:    'Planejado'
+  };
+
+  var RM_STATUS_ORDER = ['analyzing', 'developing', 'planned'];
+
   /* ------------------------------------------------------------------ */
   /*  CSS                                                                 */
   /* ------------------------------------------------------------------ */
@@ -111,7 +119,7 @@
       '.item:hover{background:' + bgHov + ';}' +
       '.item-meta{display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-wrap:wrap;}' +
       '.type-tag{display:inline-flex;align-items:center;font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;letter-spacing:.04em;background:var(--nv-tc-bg,#e2e8f022);color:var(--nv-tc,#64748b);}' +
-      '.cat-tag{display:inline-flex;align-items:center;font-size:10.5px;padding:2px 8px;border-radius:999px;border:1px solid ' + bdr + ';color:' + mute + ';}' +
+      '.cat-tag{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;padding:2px 8px;border-radius:999px;border:1px solid ' + bdr + ';color:' + mute + ';}' +
       '.item-date{font-size:11px;color:' + mute + ';margin-left:auto;white-space:nowrap;}' +
       '.unread-dot{width:8px;height:8px;border-radius:50%;background:' + ac + ';flex-shrink:0;}' +
       '.item-title{font-size:.93rem;font-weight:700;color:' + ink + ';margin:0 0 6px;line-height:1.35;}' +
@@ -136,6 +144,16 @@
       '.cta:hover{opacity:.85;}' +
       // Comentarios
       '.comments-wrap{margin-top:12px;}' +
+      '.cm-count-btn{display:inline-flex;align-items:center;gap:6px;background:' + bgCard + ';border:1.5px solid ' + bdr + ';border-radius:999px;padding:5px 12px 5px 10px;cursor:pointer;font-size:.79rem;font-weight:600;color:' + mute + ';transition:all .2s;margin-bottom:10px;user-select:none;line-height:1;}' +
+      '.cm-count-btn:hover{border-color:' + ac + ';color:' + ac + ';background:' + ac + '0d;}' +
+      '.cm-count-btn.open{border-color:' + ac + ';color:' + ac + ';background:' + ac + '0d;}' +
+      '.cm-icon{width:13px;height:13px;flex-shrink:0;opacity:.7;}' +
+      '.cm-chevron{width:11px;height:11px;flex-shrink:0;transition:transform .22s ease;opacity:.6;}' +
+      '.cm-count-btn.open .cm-chevron{transform:rotate(180deg);}' +
+      '.cm-list-wrap{margin:0 0 10px 4px;padding-left:14px;border-left:2px solid ' + bdr + ';}' +
+      '.cm-item-hidden{display:none;}' +
+      '.cm-more-btn{display:block;width:100%;margin-top:8px;background:none;border:1.5px solid ' + bdr + ';border-radius:999px;padding:5px 14px;cursor:pointer;font-size:.78rem;font-weight:600;color:' + ac + ';text-align:center;transition:all .17s;letter-spacing:.01em;}' +
+      '.cm-more-btn:hover{border-color:' + ac + ';background:' + ac + '11;}' +
       '.comment-item{background:' + bgCard + ';border-radius:10px;padding:10px 12px;margin-top:6px;font-size:.82rem;}' +
       '.comment-author{font-weight:700;color:' + ink + ';margin-bottom:3px;}' +
       '.comment-body{color:' + mute + ';line-height:1.48;}' +
@@ -158,9 +176,9 @@
       '.feedback-wrap{margin-top:10px;padding-top:10px;border-top:1px solid ' + bdr + ';}' +
       '.fb-label{font-size:.75rem;font-weight:600;color:' + mute + ';margin-bottom:8px;letter-spacing:.01em;}' +
       '.fb-faces{display:flex;gap:10px;}' +
-      '.face-btn{background:none;border:2px solid ' + bdr + ';border-radius:50%;width:38px;height:38px;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;}' +
-      '.face-btn:hover{border-color:' + ac + ';transform:scale(1.12);}' +
-      '.face-btn.sel{border-color:' + ac + ';background:' + ac + '22;transform:scale(1.1);}' +
+      '.face-btn{background:none;border:2px solid ' + bdr + ';color:' + mute + ';border-radius:50%;width:38px;height:38px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;}' +
+      '.face-btn:hover{border-color:' + ac + ';color:' + ac + ';transform:scale(1.12);}' +
+      '.face-btn.sel{border-color:' + ac + ';background:' + ac + '22;color:' + ac + ';transform:scale(1.1);}' +
       '.fb-form{display:none;flex-direction:column;gap:7px;margin-top:8px;}' +
       '.fb-form.open{display:flex;}' +
       '.fb-form textarea{border:1px solid ' + bdr + ';background:' + bg + ';color:' + ink + ';border-radius:8px;padding:8px;font-size:.8rem;width:100%;min-height:56px;resize:none;outline:none;transition:border-color .15s;}' +
@@ -174,13 +192,23 @@
       '.nav-tab{flex:1;padding:11px 8px;text-align:center;cursor:pointer;font-size:12px;font-weight:700;color:' + mute + ';border:none;background:none;border-top:2px solid transparent;margin-top:-2px;letter-spacing:.02em;transition:color .15s,border-color .15s;}' +
       '.nav-tab:hover{color:' + ink + ';}' +
       '.nav-tab.active{color:' + ac + ';border-top-color:' + ac + ';}' +
+      // Filtros rapidos de status do roadmap
+      '.rm-filters{display:flex;gap:6px;padding:10px 20px;border-bottom:1px solid ' + bdr + ';overflow-x:auto;flex-shrink:0;scrollbar-width:none;}' +
+      '.rm-filters::-webkit-scrollbar{display:none;}' +
       // Itens de roadmap
       '.rm-item{padding:16px 20px;border-bottom:1px solid ' + bdr + ';transition:background .15s;}' +
       '.rm-item:last-child{border-bottom:none;}' +
       '.rm-item:hover{background:' + bgHov + ';}' +
-      '.rm-status{display:inline-flex;align-items:center;font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;letter-spacing:.04em;margin-bottom:8px;}' +
+      '.rm-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;}' +
+      '.rm-status{display:inline-flex;align-items:center;font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;letter-spacing:.04em;}' +
       '.rm-analyzing{background:#f9731620;color:#f97316;}' +
       '.rm-developing{background:#3b82f620;color:#3b82f6;}' +
+      '.rm-planned{background:#8b5cf620;color:#8b5cf6;}' +
+      '.rm-vote{display:flex;align-items:center;gap:4px;flex-shrink:0;}' +
+      '.rm-vote-btn{display:flex;align-items:center;gap:4px;background:none;border:1.5px solid ' + bdr + ';color:' + mute + ';border-radius:999px;padding:3px 9px;font-size:11px;font-weight:700;cursor:pointer;transition:all .15s;line-height:1.4;}' +
+      '.rm-vote-btn:hover{border-color:' + ac + ';color:' + ac + ';}' +
+      '.rm-vote-up.active{border-color:#10b981;background:#10b98120;color:#10b981;}' +
+      '.rm-vote-down.active{border-color:#ef4444;background:#ef444420;color:#ef4444;}' +
       '.rm-title{font-size:.93rem;font-weight:700;color:' + ink + ';margin:0 0 6px;line-height:1.35;}' +
       '.rm-desc{font-size:.85rem;line-height:1.62;color:' + mute + ';overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;}' +
       '.rm-desc.expanded{display:block;-webkit-line-clamp:unset;}' +
@@ -209,8 +237,16 @@
 
   function fmtDate(iso) {
     if (!iso) return '';
-    try { return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }); }
-    catch (e) { return ''; }
+    try {
+      var diff  = Date.now() - new Date(iso).getTime();
+      var mins  = Math.floor(diff / 60000);
+      var hours = Math.floor(diff / 3600000);
+      var days  = Math.floor(diff / 86400000);
+      if (mins  < 1)  return 'agora mesmo';
+      if (hours < 1)  return mins  + ' min atrás';
+      if (hours < 24) return hours + ' hora'  + (hours !== 1 ? 's' : '') + ' atrás';
+      return days + ' dia' + (days !== 1 ? 's' : '') + ' atrás';
+    } catch (e) { return ''; }
   }
 
   function renderItem(it, isNew) {
@@ -254,13 +290,45 @@
         '>' + esc(s.cta_text) + '</a>'
       : '';
 
-    var commentsList = (it.comments || []).map(function (c) {
-      return '<div class="comment-item"><div class="comment-author">' + esc(c.author_name) + '</div>' +
-             '<div class="comment-body">' + esc(c.body) + '</div></div>';
+    var CM_PAGE = 5;
+    var allCm   = it.comments || [];
+    var totalCm = allCm.length;
+
+    var commentsList = allCm.map(function (c, idx) {
+      var hiddenCls = idx >= CM_PAGE ? ' cm-item-hidden' : '';
+      return '<div class="comment-item' + hiddenCls + '" data-cmitem="' + it.id + '">' +
+        '<div class="comment-author">' + esc(c.author_name) + '</div>' +
+        '<div class="comment-body">' + esc(c.body) + '</div></div>';
     }).join('');
 
+    var cmRemaining = Math.max(0, totalCm - CM_PAGE);
+    var cmMoreBtn = totalCm > CM_PAGE
+      ? '<button class="cm-more-btn" data-cmmore="' + it.id + '" data-cmshown="' + CM_PAGE + '">' +
+        'Ver mais ' + cmRemaining + ' coment\u00E1rio' + (cmRemaining !== 1 ? 's' : '') + '</button>'
+      : '';
+
+    var cmBubbleSvg =
+      '<svg class="cm-icon" viewBox="0 0 16 16" fill="currentColor">' +
+      '<path d="M14 1H2a1 1 0 00-1 1v8a1 1 0 001 1h3l2.5 3 2.5-3H14a1 1 0 001-1V2a1 1 0 00-1-1z"/></svg>';
+    var cmChevronSvg =
+      '<svg class="cm-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">' +
+      '<polyline points="3 6 8 11 13 6"/></svg>';
+
+    var cmCountBtn = (s.show_comments && totalCm > 0)
+      ? '<button class="cm-count-btn" data-cmtoggle="' + it.id + '">' +
+        cmBubbleSvg +
+        totalCm + ' coment\u00E1rio' + (totalCm !== 1 ? 's' : '') +
+        cmChevronSvg +
+        '</button>'
+      : '';
+
+    var cmListWrap = (s.show_comments && totalCm > 0)
+      ? '<div class="cm-list-wrap" data-cmwrap="' + it.id + '" style="display:none;">' +
+        commentsList + cmMoreBtn + '</div>'
+      : '';
+
     // \u00E1 = a com acento (coment\u00E1rio); \u2026 = reticencias (...)
-    // \u2713 = check mark; \u00D7 = x (fecha alerta)
+    // \u00D7 = x (fecha alerta)
     var commentForm = (s.show_comments && s.allow_comments)
       ? '<form class="cform" data-cid="' + it.id + '">' +
           '<input class="hp" name="website" tabindex="-1" autocomplete="off">' +
@@ -272,13 +340,13 @@
           '</div>' +
         '</form>' +
         '<div class="comment-alert" data-calert="' + it.id + '">' +
-          '\u2713 Coment\u00E1rio enviado! Aguardando aprova\u00E7\u00E3o.' +
+          '<i class="fa-solid fa-circle-check"></i> Coment\u00E1rio enviado! Aguardando aprova\u00E7\u00E3o.' +
           '<button class="alert-close" data-caclose="' + it.id + '" aria-label="Fechar">\u00D7</button>' +
         '</div>'
       : '';
 
     var commentsSection = s.show_comments
-      ? '<div class="comments-wrap">' + commentsList + commentForm + '</div>'
+      ? '<div class="comments-wrap">' + cmCountBtn + cmListWrap + commentForm + '</div>'
       : '';
 
     // Feedback por item (😢=sad 😐=neutral 😊=happy)
@@ -286,15 +354,15 @@
     if (s.feedback_enabled) {
       try {
         if (localStorage.getItem('nv_fb_' + it.id)) {
-          feedbackSection = '<div class="fb-done">✓ Obrigado pelo feedback!</div>';
+          feedbackSection = '<div class="fb-done"><i class="fa-solid fa-circle-check"></i> Obrigado pelo feedback!</div>';
         } else {
           feedbackSection =
             '<div class="feedback-wrap" data-fbw="' + it.id + '">' +
               '<div class="fb-label">Avalie esta novidade:</div>' +
               '<div class="fb-faces">' +
-                '<button class="face-btn" data-fbscore="sad" data-fbid="' + it.id + '" title="Insatisfeito">😢</button>' +
-                '<button class="face-btn" data-fbscore="neutral" data-fbid="' + it.id + '" title="Neutro">😐</button>' +
-                '<button class="face-btn" data-fbscore="happy" data-fbid="' + it.id + '" title="Satisfeito">😊</button>' +
+                '<button class="face-btn" data-fbscore="sad" data-fbid="' + it.id + '" title="Insatisfeito"><i class="fa-solid fa-face-frown"></i></button>' +
+                '<button class="face-btn" data-fbscore="neutral" data-fbid="' + it.id + '" title="Neutro"><i class="fa-solid fa-face-meh"></i></button>' +
+                '<button class="face-btn" data-fbscore="happy" data-fbid="' + it.id + '" title="Satisfeito"><i class="fa-solid fa-face-smile"></i></button>' +
               '</div>' +
               '<form class="fb-form" data-fbf="' + it.id + '">' +
                 '<textarea name="comment" placeholder="Conte mais (opcional)…"></textarea>' +
@@ -333,22 +401,37 @@
   /* ------------------------------------------------------------------ */
 
   function renderRoadmapItem(it) {
-    var statusLabel = it.status === 'developing' ? 'Em desenvolvimento' : 'Em análise';
-    var statusClass = it.status === 'developing' ? 'rm-developing' : 'rm-analyzing';
+    var statusLabel = RM_STATUS_LABELS[it.status] || it.status;
+    var statusClass = 'rm-' + it.status;
+
+    var voteHtml = '';
+    if (it.voting_enabled) {
+      var userVote = null;
+      try { userVote = localStorage.getItem('nv_rm_vote_' + it.id); } catch (e) {}
+      voteHtml =
+        '<div class="rm-vote" data-rmvote="' + it.id + '">' +
+          '<button class="rm-vote-btn rm-vote-up' + (userVote === 'up' ? ' active' : '') + '" data-rmvotebtn="up" data-rmvoteid="' + it.id + '">' +
+            '<i class="fa-solid fa-thumbs-up"></i> <span class="rm-vote-count" data-rmvotecount="up">' + (it.votes_up || 0) + '</span>' +
+          '</button>' +
+          '<button class="rm-vote-btn rm-vote-down' + (userVote === 'down' ? ' active' : '') + '" data-rmvotebtn="down" data-rmvoteid="' + it.id + '">' +
+            '<i class="fa-solid fa-thumbs-down"></i> <span class="rm-vote-count" data-rmvotecount="down">' + (it.votes_down || 0) + '</span>' +
+          '</button>' +
+        '</div>';
+    }
 
     var feedbackSection = '';
     if (it.feedback_enabled) {
       try {
         if (localStorage.getItem('nv_rm_fb_' + it.id)) {
-          feedbackSection = '<div class="fb-done">✓ Obrigado pelo feedback!</div>';
+          feedbackSection = '<div class="fb-done"><i class="fa-solid fa-circle-check"></i> Obrigado pelo feedback!</div>';
         } else {
           feedbackSection =
             '<div class="feedback-wrap" data-rmfbw="' + it.id + '">' +
               '<div class="fb-label">O que achou deste item?</div>' +
               '<div class="fb-faces">' +
-                '<button class="face-btn" data-rmfbscore="sad" data-rmfbid="' + it.id + '" title="Insatisfeito">😢</button>' +
-                '<button class="face-btn" data-rmfbscore="neutral" data-rmfbid="' + it.id + '" title="Neutro">😐</button>' +
-                '<button class="face-btn" data-rmfbscore="happy" data-rmfbid="' + it.id + '" title="Satisfeito">😊</button>' +
+                '<button class="face-btn" data-rmfbscore="sad" data-rmfbid="' + it.id + '" title="Insatisfeito"><i class="fa-solid fa-face-frown"></i></button>' +
+                '<button class="face-btn" data-rmfbscore="neutral" data-rmfbid="' + it.id + '" title="Neutro"><i class="fa-solid fa-face-meh"></i></button>' +
+                '<button class="face-btn" data-rmfbscore="happy" data-rmfbid="' + it.id + '" title="Satisfeito"><i class="fa-solid fa-face-smile"></i></button>' +
               '</div>' +
               '<form class="fb-form" data-rmfbf="' + it.id + '">' +
                 '<textarea name="comment" placeholder="Conte mais (opcional)…"></textarea>' +
@@ -362,8 +445,11 @@
       } catch (e) {}
     }
 
-    return '<div class="rm-item" data-rmid="' + it.id + '">' +
-      '<div class="rm-status ' + statusClass + '">' + statusLabel + '</div>' +
+    return '<div class="rm-item" data-rmid="' + it.id + '" data-rmstatus="' + esc(it.status) + '">' +
+      '<div class="rm-top">' +
+        '<div class="rm-status ' + statusClass + '">' + esc(statusLabel) + '</div>' +
+        voteHtml +
+      '</div>' +
       '<h3 class="rm-title">' + esc(it.title) + '</h3>' +
       '<div class="rm-desc" data-rmdesc="' + it.id + '">' + (it.description || '') + '</div>' +
       '<button class="rm-more" data-rmmore="' + it.id + '">Ver mais</button>' +
@@ -550,7 +636,6 @@
     });
 
     // Toggle do formulario de comentario
-    // \u274C = X (\u274C)   \uD83D\uDCAC = balao de fala (\uD83D\uDCAC)
     panel.querySelectorAll('[data-ctoggle]').forEach(function (btn) {
       btn.addEventListener('click', function () {
         var id   = btn.getAttribute('data-ctoggle');
@@ -558,7 +643,7 @@
         if (!form) return;
         var isOpen = form.classList.toggle('open');
         btn.classList.toggle('open', isOpen);
-        btn.textContent = isOpen ? '\u274C Cancelar' : 'Comentar';
+        btn.innerHTML = isOpen ? '<i class="fa-solid fa-xmark"></i> Cancelar' : 'Comentar';
       });
     });
 
@@ -604,6 +689,36 @@
         var id = btn.getAttribute('data-caclose');
         var alertEl = shadow.querySelector('.comment-alert[data-calert="' + id + '"]');
         if (alertEl) alertEl.classList.remove('show');
+      });
+    });
+
+    // Toggle lista de comentarios colapsada
+    panel.querySelectorAll('.cm-count-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var id   = btn.getAttribute('data-cmtoggle');
+        var wrap = shadow.querySelector('.cm-list-wrap[data-cmwrap="' + id + '"]');
+        if (!wrap) return;
+        var isOpen = wrap.style.display !== 'none';
+        wrap.style.display = isOpen ? 'none' : '';
+        btn.classList.toggle('open', !isOpen);
+      });
+    });
+
+    // Ver mais comentarios (pagina de 5)
+    panel.querySelectorAll('.cm-more-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var id     = btn.getAttribute('data-cmmore');
+        var hidden = shadow.querySelectorAll('.cm-item-hidden[data-cmitem="' + id + '"]');
+        var count  = 0;
+        hidden.forEach(function (el) {
+          if (count < 5) { el.classList.remove('cm-item-hidden'); count++; }
+        });
+        var remaining = shadow.querySelectorAll('.cm-item-hidden[data-cmitem="' + id + '"]').length;
+        if (remaining === 0) {
+          btn.style.display = 'none';
+        } else {
+          btn.textContent = 'Ver mais ' + remaining + ' comentário' + (remaining !== 1 ? 's' : '');
+        }
       });
     });
 
@@ -653,8 +768,8 @@
             var fbWrap = item.querySelector('.feedback-wrap');
             if (fbWrap) {
               var done = document.createElement('div');
-              done.className   = 'fb-done';
-              done.textContent = '✓ Obrigado pelo feedback!';
+              done.className = 'fb-done';
+              done.innerHTML = '<i class="fa-solid fa-circle-check"></i> Obrigado pelo feedback!';
               fbWrap.parentNode.replaceChild(done, fbWrap);
             }
           }
@@ -694,7 +809,18 @@
                   '<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity=".35"><path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6-10l6-3m6 3l-5.447-2.724A1 1 0 0015 5.618V16.382a1 1 0 001.447.894L21 15m0 0V4"/></svg>' +
                   '<p>Nenhum item de roadmap publicado.</p></div>';
               } else {
-                rmBody.innerHTML = rmItems.map(renderRoadmapItem).join('');
+                var presentStatuses = RM_STATUS_ORDER.filter(function (st) {
+                  return rmItems.some(function (it) { return it.status === st; });
+                });
+                var rmFiltersHtml = presentStatuses.length > 1
+                  ? '<div class="rm-filters" id="nv-rm-filters">' +
+                      '<button class="tab active" data-rmfilter="all">Todos</button>' +
+                      presentStatuses.map(function (st) {
+                        return '<button class="tab" data-rmfilter="' + st + '">' + RM_STATUS_LABELS[st] + '</button>';
+                      }).join('') +
+                    '</div>'
+                  : '';
+                rmBody.innerHTML = rmFiltersHtml + rmItems.map(renderRoadmapItem).join('');
                 bindRoadmapEvents();
               }
             }).catch(function () {
@@ -711,6 +837,49 @@
 
     // ---- Handlers do Roadmap ----
     function bindRoadmapEvents() {
+      // Filtros rapidos de status
+      var rmFiltersEl = rmBody.querySelector('#nv-rm-filters');
+      if (rmFiltersEl) {
+        rmFiltersEl.addEventListener('click', function (e) {
+          var b = e.target.closest('.tab');
+          if (!b) return;
+          var st = b.getAttribute('data-rmfilter');
+          rmFiltersEl.querySelectorAll('.tab').forEach(function (t) { t.classList.toggle('active', t === b); });
+          rmBody.querySelectorAll('.rm-item').forEach(function (el) {
+            el.style.display = (st === 'all' || el.getAttribute('data-rmstatus') === st) ? '' : 'none';
+          });
+        });
+      }
+
+      // Votacao (like/dislike) do roadmap
+      rmBody.querySelectorAll('[data-rmvotebtn]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var id   = btn.getAttribute('data-rmvoteid');
+          var vote = btn.getAttribute('data-rmvotebtn');
+          var wrap = rmBody.querySelector('.rm-vote[data-rmvote="' + id + '"]');
+          if (!wrap) return;
+
+          api('/roadmap-vote', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ reader_id: ctx.reader, roadmap_item_id: +id, vote: vote })
+          }).then(function (res) {
+            if (!res || !res.ok) return;
+            try {
+              if (res.vote) { localStorage.setItem('nv_rm_vote_' + id, res.vote); }
+              else { localStorage.removeItem('nv_rm_vote_' + id); }
+            } catch (e) {}
+
+            wrap.querySelectorAll('.rm-vote-btn').forEach(function (b) {
+              b.classList.toggle('active', b.getAttribute('data-rmvotebtn') === res.vote);
+            });
+            var upCount   = wrap.querySelector('.rm-vote-up .rm-vote-count');
+            var downCount = wrap.querySelector('.rm-vote-down .rm-vote-count');
+            if (upCount)   upCount.textContent   = res.votes_up;
+            if (downCount) downCount.textContent = res.votes_down;
+          }).catch(function () {});
+        });
+      });
+
       // Ver mais / Ver menos
       rmBody.querySelectorAll('.rm-more').forEach(function (btn) {
         btn.addEventListener('click', function () {
@@ -767,8 +936,8 @@
               var fbWrap = rmItem.querySelector('.feedback-wrap');
               if (fbWrap) {
                 var done = document.createElement('div');
-                done.className   = 'fb-done';
-                done.textContent = '✓ Obrigado pelo feedback!';
+                done.className = 'fb-done';
+                done.innerHTML = '<i class="fa-solid fa-circle-check"></i> Obrigado pelo feedback!';
                 fbWrap.parentNode.replaceChild(done, fbWrap);
               }
             }

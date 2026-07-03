@@ -444,18 +444,52 @@
                         </div>
                         <div class="field" style="margin-bottom:0;">
                             <label for="banner_custom_copy">Título do banner <span style="font-weight:400;color:var(--mute);">(opcional)</span></label>
-                            <input class="input" id="banner_custom_copy" name="banner[custom_copy]"
-                                   value="{{ old('banner.custom_copy', $bn?->custom_copy) }}"
-                                   placeholder="Deixe em branco para usar o título do changelog"
-                                   maxlength="500">
+                            <div style="display:flex;gap:8px;">
+                                <input class="input" id="banner_custom_copy" name="banner[custom_copy]"
+                                       value="{{ old('banner.custom_copy', $bn?->custom_copy) }}"
+                                       placeholder="Deixe em branco para usar o título do changelog"
+                                       maxlength="500" style="flex:1;min-width:0;">
+                                <select class="select" name="banner[title_align]" id="banner_title_align"
+                                        title="Alinhamento do título" style="width:112px;flex-shrink:0;">
+                                    <option value="left"   @selected(old('banner.title_align', $bn?->title_align ?: 'left') === 'left')>Esquerda</option>
+                                    <option value="center" @selected(old('banner.title_align', $bn?->title_align) === 'center')>Centro</option>
+                                    <option value="right"  @selected(old('banner.title_align', $bn?->title_align) === 'right')>Direita</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
 
                     <div class="field" style="margin-bottom:20px;">
-                        <label for="banner_description">Descrição <span style="font-weight:400;color:var(--mute);">(opcional)</span></label>
-                        <textarea class="textarea" id="banner_description" name="banner[description]"
-                                  rows="2" maxlength="1000"
-                                  placeholder="Texto adicional exibido abaixo do título">{{ old('banner.description', $bn?->description) }}</textarea>
+                        <div style="display:flex;align-items:flex-end;gap:8px;">
+                            <div style="flex:1;min-width:0;">
+                                <label for="banner_description">Descrição <span style="font-weight:400;color:var(--mute);">(opcional)</span></label>
+                                <textarea class="textarea" id="banner_description" name="banner[description]"
+                                          rows="2" maxlength="1000"
+                                          placeholder="Texto adicional exibido abaixo do título">{{ old('banner.description', $bn?->description) }}</textarea>
+                            </div>
+                            <select class="select" name="banner[description_align]" id="banner_description_align"
+                                    title="Alinhamento da descrição" style="width:112px;flex-shrink:0;">
+                                <option value="left"   @selected(old('banner.description_align', $bn?->description_align ?: 'left') === 'left')>Esquerda</option>
+                                <option value="center" @selected(old('banner.description_align', $bn?->description_align) === 'center')>Centro</option>
+                                <option value="right"  @selected(old('banner.description_align', $bn?->description_align) === 'right')>Direita</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="checkbox-row" style="margin-bottom:12px;">
+                        <input type="checkbox" name="banner[countdown_enabled]" value="1" id="banner_countdown_enabled"
+                               onchange="nvBannerCountdownChange(this)"
+                               @checked(old('banner.countdown_enabled', $bn?->countdown_enabled ?? false))
+                               style="width:16px;height:16px;accent-color:var(--primary);cursor:pointer;">
+                        <label for="banner_countdown_enabled" style="font-size:14px;font-weight:600;color:var(--ink);cursor:pointer;margin:0;">
+                            Exibir contador regressivo
+                        </label>
+                    </div>
+                    <div class="field" id="banner_countdown_wrap" style="margin-bottom:20px;{{ old('banner.countdown_enabled', $bn?->countdown_enabled ?? false) ? '' : 'display:none;' }}">
+                        <label for="banner_countdown_target_at">Data/hora final do contador</label>
+                        <input class="input" type="datetime-local" id="banner_countdown_target_at" name="banner[countdown_target_at]"
+                               value="{{ old('banner.countdown_target_at', $bn?->countdown_target_at?->format('Y-m-d\TH:i')) }}">
+                        <p style="font-size:11px;color:var(--mute);margin:4px 0 0;">O banner exibirá dias, horas, minutos e segundos restantes até esta data.</p>
                     </div>
 
                     <div style="border-top:1px solid var(--canvas);padding-top:20px;margin-bottom:20px;">
@@ -847,6 +881,9 @@ function nvBannerStyleChange(sel) {
     var posWrap = document.getElementById('banner_position_wrap');
     posWrap.style.display = sel.value === 'toast' ? '' : 'none';
 }
+function nvBannerCountdownChange(cb) {
+    document.getElementById('banner_countdown_wrap').style.display = cb.checked ? '' : 'none';
+}
 function nvBannerFreqChange(sel) {
     var capInput = document.getElementById('banner_frequency_cap');
     capInput.style.opacity = sel.value === 'times_capped' ? '' : '.4';
@@ -902,10 +939,14 @@ function nvPreviewBanner() {
     var titleEl     = document.getElementById('title');
     var copy        = copyEl.value || (titleEl ? titleEl.value : '') || 'Texto do banner';
     var description = document.getElementById('banner_description').value;
+    var titleAlign  = document.getElementById('banner_title_align').value || 'left';
+    var descAlign   = document.getElementById('banner_description_align').value || 'left';
     var ctaText     = document.getElementById('banner_cta_text').value;
     var bgColor     = document.getElementById('banner_bg_color').value;
     var textColor   = document.getElementById('banner_text_color').value;
     var ctaColor    = document.getElementById('banner_cta_color').value;
+    var countdownOn = document.getElementById('banner_countdown_enabled').checked;
+    var countdownAt = document.getElementById('banner_countdown_target_at').value;
     var defaultAccent = getComputedStyle(document.documentElement).getPropertyValue('--primary').trim() || '#7B61FF';
     var bg   = /^#[0-9a-fA-F]{3,8}$/.test(bgColor)   ? bgColor   : defaultAccent;
     var fg   = /^#[0-9a-fA-F]{3,8}$/.test(textColor) ? textColor : '#ffffff';
@@ -916,15 +957,46 @@ function nvPreviewBanner() {
     if (style === 'toast') bannerStyle = 'position:absolute;max-width:300px;background:' + bg + ';color:' + fg + ';border-radius:10px;box-shadow:0 4px 20px rgba(0,0,0,.18);padding:14px 16px;' + (posMap[pos] || posMap.bottom_right);
     else if (style === 'top_bar') bannerStyle = 'position:absolute;top:0;left:0;right:0;background:' + bg + ';color:' + fg + ';padding:10px 16px;display:flex;align-items:center;justify-content:space-between;';
     else bannerStyle = 'position:absolute;bottom:0;left:0;right:0;background:' + bg + ';color:' + fg + ';padding:10px 16px;display:flex;align-items:center;justify-content:space-between;';
-    var descHtml = (!isBar && description) ? '<div style="font-size:12px;opacity:.85;margin-top:4px;">' + escHtml(description) + '</div>' : '';
+    var descHtml = description ? '<div style="font-size:' + (isBar ? '11px' : '12px') + ';opacity:.85;margin-top:4px;text-align:' + descAlign + ';">' + escHtml(description) + '</div>' : '';
     var ctaHtml  = (!isBar && ctaText) ? '<a href="#" style="display:inline-block;margin-top:10px;padding:6px 14px;background:' + cBtn + ';color:#fff;border-radius:6px;font-size:12px;font-weight:600;text-decoration:none;">' + escHtml(ctaText) + '</a>' : '';
+    var countdownHtml = '';
+    if (countdownOn && countdownAt) {
+        var diff = new Date(countdownAt).getTime() - Date.now();
+        if (diff > 0) {
+            var totalSec = Math.floor(diff / 1000);
+            var d = Math.floor(totalSec / 86400), h = Math.floor((totalSec % 86400) / 3600), m = Math.floor((totalSec % 3600) / 60), s = totalSec % 60;
+            var pad2 = function (n) { return (n < 10 ? '0' : '') + n; };
+            var box = function (num, lbl) { return '<div style="border:1px solid currentColor;opacity:.9;border-radius:6px;padding:3px 6px;min-width:28px;text-align:center;flex-shrink:0;"><div style="font-size:13px;font-weight:700;line-height:1.2;">' + num + '</div><div style="font-size:8px;text-transform:uppercase;opacity:.75;margin-top:2px;">' + lbl + '</div></div>'; };
+            countdownHtml = '<div style="display:flex;gap:6px;flex-shrink:0;">' + box(pad2(d),'dias') + box(pad2(h),'hs') + box(pad2(m),'min') + box(pad2(s),'seg') + '</div>';
+        }
+    }
+    // O alinhamento do título move o bloco (título+descrição+contador) inteiro;
+    // o botão (bar) fica sempre fixo no extremo direito, fora do bloco alinhável.
+    var groupJustify = titleAlign === 'center' ? 'center' : (titleAlign === 'right' ? 'flex-end' : 'flex-start');
     var html = '<div style="' + bannerStyle + '">';
     if (isBar) {
-        html += '<div style="flex:1;"><span style="font-size:13px;font-weight:600;">' + escHtml(copy) + '</span>';
-        if (ctaText) html += ' <a href="#" style="margin-left:12px;padding:4px 12px;background:' + cBtn + ';color:#fff;border-radius:6px;font-size:12px;font-weight:600;text-decoration:none;">' + escHtml(ctaText) + '</a>';
-        html += '</div><span style="cursor:pointer;font-size:18px;opacity:.7;margin-left:12px;">&times;</span>';
+        html += '<div style="display:flex;align-items:center;flex:1;min-width:0;justify-content:' + groupJustify + ';">' +
+                    '<div style="display:flex;align-items:center;gap:12px;min-width:0;">' +
+                        '<div style="min-width:0;">' +
+                            '<span style="font-size:13px;font-weight:600;text-align:' + titleAlign + ';display:block;">' + escHtml(copy) + '</span>' +
+                            descHtml +
+                        '</div>' +
+                        countdownHtml +
+                    '</div>' +
+                '</div>' +
+                '<div style="display:flex;align-items:center;gap:12px;flex-shrink:0;margin-left:12px;">';
+        if (ctaText) html += '<a href="#" style="padding:4px 12px;background:' + cBtn + ';color:#fff;border-radius:6px;font-size:12px;font-weight:600;text-decoration:none;flex-shrink:0;">' + escHtml(ctaText) + '</a>';
+        html += '<span style="cursor:pointer;font-size:18px;opacity:.7;flex-shrink:0;">&times;</span></div>';
     } else {
-        html += '<div style="padding-right:20px;"><div style="font-size:13px;font-weight:600;">' + escHtml(copy) + '</div>' + descHtml + ctaHtml + '</div>';
+        html += '<div style="display:flex;align-items:center;gap:12px;padding-right:20px;justify-content:' + groupJustify + ';">' +
+                    '<div style="display:flex;align-items:center;gap:12px;min-width:0;">' +
+                        '<div style="min-width:0;">' +
+                            '<div style="font-size:13px;font-weight:600;text-align:' + titleAlign + ';">' + escHtml(copy) + '</div>' +
+                            descHtml +
+                        '</div>' +
+                        countdownHtml +
+                    '</div>' +
+                '</div>' + ctaHtml;
         html += '<div style="position:absolute;top:8px;right:10px;cursor:pointer;font-size:16px;opacity:.6;">&times;</div>';
     }
     html += '</div>';

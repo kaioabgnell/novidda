@@ -465,7 +465,6 @@ body.dark .auth-hero { background: var(--canvas-soft); }
   display: block;
   object-fit: contain;
   margin-bottom: 48px;
-  filter: invert(1) hue-rotate(180deg);
 }
 
 .auth-hero-title {

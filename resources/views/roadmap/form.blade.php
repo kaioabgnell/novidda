@@ -87,7 +87,7 @@
                 <div class="field">
                     <label for="status">Andamento</label>
                     <select class="select" id="status" name="status">
-                        @foreach (['analyzing' => 'Em análise', 'developing' => 'Em desenvolvimento'] as $k => $lbl)
+                        @foreach (['analyzing' => 'Em análise', 'developing' => 'Em desenvolvimento', 'planned' => 'Planejado'] as $k => $lbl)
                             <option value="{{ $k }}" @selected(old('status', $item->status) === $k)>{{ $lbl }}</option>
                         @endforeach
                     </select>
@@ -100,12 +100,26 @@
                     <p style="font-size:12px;color:var(--mute);margin:6px 0 0;">Deixe em branco para publicar imediatamente.</p>
                 </div>
 
-                <div class="checkbox-row" style="margin-bottom:0;">
+                <div class="checkbox-row">
                     <input type="checkbox" name="feedback_enabled" value="1"
                            id="feedback_enabled"
                            @checked(old('feedback_enabled', $item->feedback_enabled ?? true))>
                     <label for="feedback_enabled">Habilitar feedback (😢 😐 😊)</label>
                 </div>
+
+                <div class="checkbox-row" style="margin-bottom:0;">
+                    <input type="checkbox" name="voting_enabled" value="1"
+                           id="voting_enabled"
+                           @checked(old('voting_enabled', $item->voting_enabled ?? false))>
+                    <label for="voting_enabled">Habilitar votação (👍 👎)</label>
+                </div>
+
+                @if ($item->exists)
+                    <p style="font-size:13px;color:var(--mute);margin:14px 0 0;display:flex;align-items:center;gap:14px;">
+                        <span><i class="fa-solid fa-thumbs-up" style="color:#10b981;margin-right:4px;"></i>{{ $votesUp }} likes</span>
+                        <span><i class="fa-solid fa-thumbs-down" style="color:#ef4444;margin-right:4px;"></i>{{ $votesDown }} dislikes</span>
+                    </p>
+                @endif
             </div>
         </div>
     </div>
