@@ -720,8 +720,9 @@
         var el = document.getElementById(targetId);
         if (!el) return;
         // Extrai texto sem tags HTML
-        var text = el.innerText || el.textContent;
-        navigator.clipboard.writeText(text.trim()).then(function () {
+        var text = (el.innerText || el.textContent || '').trim();
+
+        function showCopied() {
             var orig = btn.innerHTML;
             btn.innerHTML = '<i class="fa-solid fa-check"></i> Copiado!';
             btn.classList.add('copy-ok');
@@ -729,16 +730,29 @@
                 btn.innerHTML = orig;
                 btn.classList.remove('copy-ok');
             }, 2000);
-        }).catch(function () {
-            // fallback
-            var ta = document.createElement('textarea');
-            ta.value = text.trim();
-            ta.style.position = 'fixed'; ta.style.opacity = '0';
-            document.body.appendChild(ta);
-            ta.select();
-            document.execCommand('copy');
-            document.body.removeChild(ta);
-        });
+        }
+
+        function fallbackCopy() {
+            try {
+                var ta = document.createElement('textarea');
+                ta.value = text;
+                ta.style.position = 'fixed'; ta.style.opacity = '0';
+                document.body.appendChild(ta);
+                ta.focus();
+                ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+                showCopied();
+            } catch (e) {}
+        }
+
+        // navigator.clipboard só existe em contexto seguro (HTTPS/localhost).
+        // Em HTTP puro ele vem undefined, então caímos direto no fallback.
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(showCopied).catch(fallbackCopy);
+        } else {
+            fallbackCopy();
+        }
     }
 </script>
 @endpush
