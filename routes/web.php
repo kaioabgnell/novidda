@@ -20,7 +20,7 @@ Route::middleware('guest')->group(function () {
     Route::post('login', [AuthenticatedSessionController::class, 'store']);
 });
 
-Route::get('/', fn () => redirect()->route(auth()->check() ? 'dashboard' : 'login'));
+Route::get('/', fn () => view('landing'))->name('home');
 
 // ---- Painel (autenticado + tenant) ----
 Route::middleware(['auth', 'tenant'])->group(function () {
