@@ -6,6 +6,7 @@
     <title>@yield('title', 'Entrar') · Novidda</title>
     <link rel="stylesheet" href="{{ asset('vendor/fontawesome/css/all.min.css') }}">
     <link rel="stylesheet" href="{{ asset('css/neu.css') }}">
+        <link rel="icon" type="image/x-icon" href="{{ url('img/favicon.png') }}">
     <script>/* evita flash */(function(){var t=localStorage.getItem('novidda-theme')||((window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light');if(t==='dark')document.body&&document.body.classList.add('dark');document.documentElement.setAttribute('data-theme',t);})();</script>
 </head>
 <body>

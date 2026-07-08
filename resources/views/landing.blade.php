@@ -7,8 +7,7 @@
     <title>Novidda — Changelog e anúncio de novidades in-app, 100% grátis</title>
     <meta name="description" content="Anuncie novidades dentro do seu produto com widget leve de changelog, roadmap com votação e banners. 100% gratuito, contas ilimitadas, sem cartão.">
     <link rel="canonical" href="https://novidda.com.br/">
-    <meta name="robots" content="index, follow">
-
+    <meta name="robots" content="index, follow">    
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="Novidda">
     <meta property="og:title" content="Novidda — Anuncie novidades dentro do seu produto">
@@ -23,7 +22,7 @@
     <meta name="twitter:description" content="Changelog, roadmap com votação e banners contextuais em um widget leve. 100% gratuito, contas e clientes ilimitados.">
     <meta name="twitter:image" content="https://novidda.com.br/img/og-novidda.png">
 
-    <link rel="icon" href="{{ asset('favicon.ico') }}">
+    <link rel="icon" href="{{ asset('img/favicon.png') }}">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -569,6 +568,7 @@
                     <li><a href="#como-funciona">Como funciona</a></li>
                     <li><a href="#gratuito">Por que gratuito</a></li>
                     <li><a href="#faq">FAQ</a></li>
+                    <li><a target="_blank" href="https://wa.me/+5562982879325">Dúvidas</a></li>
                 </ul>
             </div>
             <div>
