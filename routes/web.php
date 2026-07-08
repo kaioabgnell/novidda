@@ -28,6 +28,8 @@ Route::middleware(['auth', 'tenant'])->group(function () {
 
     Route::get('dashboard', DashboardController::class)->name('dashboard');
 
+    Route::get('home', DashboardController::class)->name('dashboard');
+
     Route::resource('changelogs', ChangelogController::class)->except('show');
     Route::post('changelogs/{changelog}/publish', [ChangelogController::class, 'publish'])->name('changelogs.publish');
     Route::post('changelogs/{changelog}/archive', [ChangelogController::class, 'archive'])->name('changelogs.archive');
