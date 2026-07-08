@@ -11,7 +11,19 @@ use App\Http\Controllers\RoadmapController;
 use App\Http\Controllers\SegmentationController;
 use App\Http\Controllers\WidgetSettingController;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Storage;
 
+// Fallback para servir arquivos de storage/app/public sem depender de symlink
+// (necessário em hospedagens compartilhadas sem SSH, onde storage:link não pode ser executado).
+// Só é acionada quando o Apache não encontra um arquivo físico em public/storage/{path}
+// (ver RewriteCond !-f no .htaccess) — se o symlink existir e funcionar, esta rota nunca é chamada.
+Route::get('storage/{path}', function (string $path) {
+    if (! Storage::disk('public')->exists($path)) {
+        abort(404);
+    }
+
+    return Storage::disk('public')->response($path);
+})->where('path', '.*')->name('storage.local');
 
 Route::get('/fix-storage-link', function () {
     $target = storage_path('app/public');
