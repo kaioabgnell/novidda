@@ -3,6 +3,7 @@
 
 @push('head')
     <link rel="stylesheet" href="{{ asset('vendor/quill/quill.snow.css') }}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <style>
         .ql-toolbar.ql-snow { border-color: var(--primary-pale); border-radius: var(--r-md) var(--r-md) 0 0; background: var(--card-bg); }
         .ql-container.ql-snow { border-color: var(--primary-pale); border-radius: 0 0 var(--r-md) var(--r-md); background: var(--card-bg); min-height: 200px; }
@@ -271,8 +272,10 @@
 
                     <div class="field">
                         <label for="published_at">Agendar publicação</label>
-                        <input class="input" type="datetime-local" id="published_at" name="published_at"
-                               value="{{ old('published_at', $changelog->published_at?->format('Y-m-d\TH:i')) }}">
+                        <input class="input" type="text" id="published_at" name="published_at"
+                               data-flatpickr="datetime"
+                               data-default="{{ old('published_at', $changelog->published_at?->format('Y-m-d\TH:i')) }}"
+                               placeholder="dd/mm/aaaa hh:mm" autocomplete="off">
                         <p style="font-size:12px;color:var(--mute);margin:6px 0 0;">Data futura + Publicado = agendamento automático.</p>
                     </div>
 
@@ -438,8 +441,10 @@
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
                         <div class="field" style="margin-bottom:0;">
                             <label for="banner_expires_at">Expirar em</label>
-                            <input class="input" type="date" id="banner_expires_at" name="banner[expires_at]"
-                                   value="{{ old('banner.expires_at', $bn?->expires_at?->format('Y-m-d')) }}">
+                            <input class="input" type="text" id="banner_expires_at" name="banner[expires_at]"
+                                   data-flatpickr="date"
+                                   data-default="{{ old('banner.expires_at', $bn?->expires_at?->format('Y-m-d')) }}"
+                                   placeholder="dd/mm/aaaa" autocomplete="off">
                             <p style="font-size:11px;color:var(--mute);margin:4px 0 0;">Deixe em branco para nunca expirar.</p>
                         </div>
                         <div class="field" style="margin-bottom:0;">
@@ -487,8 +492,10 @@
                     </div>
                     <div class="field" id="banner_countdown_wrap" style="margin-bottom:20px;{{ old('banner.countdown_enabled', $bn?->countdown_enabled ?? false) ? '' : 'display:none;' }}">
                         <label for="banner_countdown_target_at">Data/hora final do contador</label>
-                        <input class="input" type="datetime-local" id="banner_countdown_target_at" name="banner[countdown_target_at]"
-                               value="{{ old('banner.countdown_target_at', $bn?->countdown_target_at?->format('Y-m-d\TH:i')) }}">
+                        <input class="input" type="text" id="banner_countdown_target_at" name="banner[countdown_target_at]"
+                               data-flatpickr="datetime"
+                               data-default="{{ old('banner.countdown_target_at', $bn?->countdown_target_at?->format('Y-m-d\TH:i')) }}"
+                               placeholder="dd/mm/aaaa hh:mm" autocomplete="off">
                         <p style="font-size:11px;color:var(--mute);margin:4px 0 0;">O banner exibirá dias, horas, minutos e segundos restantes até esta data.</p>
                     </div>
 
@@ -826,8 +833,25 @@
 @endsection
 
 @push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/pt.js"></script>
 <script src="{{ asset('vendor/quill/quill.js') }}"></script>
 <script>
+// ── Datas sempre em formato brasileiro (dd/mm/aaaa), independente do SO ──
+document.querySelectorAll('[data-flatpickr]').forEach(function (el) {
+    var isDateTime = el.dataset.flatpickr === 'datetime';
+    flatpickr(el, {
+        locale: 'pt',
+        altInput: true,
+        altFormat: isDateTime ? 'd/m/Y H:i' : 'd/m/Y',
+        dateFormat: isDateTime ? 'Y-m-d\\TH:i' : 'Y-m-d',
+        enableTime: isDateTime,
+        time_24hr: true,
+        allowInput: true,
+        defaultDate: el.dataset.default || null,
+    });
+});
+
 // ── Quill ──
 var quill = new Quill('#editor', {
     theme: 'snow',

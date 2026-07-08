@@ -3,6 +3,7 @@
 
 @push('head')
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 @endpush
 
 @section('content')
@@ -58,12 +59,16 @@
 
             <div class="filter-field">
                 <label for="from">Publicação de</label>
-                <input type="date" class="input" id="from" name="from" value="{{ $filters['from'] }}">
+                <input type="text" class="input" id="from" name="from"
+                       data-flatpickr="date" data-default="{{ $filters['from'] }}"
+                       placeholder="dd/mm/aaaa" autocomplete="off">
             </div>
 
             <div class="filter-field">
                 <label for="to">Publicação até</label>
-                <input type="date" class="input" id="to" name="to" value="{{ $filters['to'] }}">
+                <input type="text" class="input" id="to" name="to"
+                       data-flatpickr="date" data-default="{{ $filters['to'] }}"
+                       placeholder="dd/mm/aaaa" autocomplete="off">
             </div>
 
             <div class="filter-field">
@@ -182,7 +187,20 @@
 @endsection
 
 @push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/pt.js"></script>
 <script>
+document.querySelectorAll('[data-flatpickr]').forEach(function (el) {
+    flatpickr(el, {
+        locale: 'pt',
+        altInput: true,
+        altFormat: 'd/m/Y',
+        dateFormat: 'Y-m-d',
+        allowInput: true,
+        defaultDate: el.dataset.default || null,
+    });
+});
+
 document.querySelectorAll('.nv-swal-delete').forEach(function (form) {
     form.querySelector('button').addEventListener('click', function () {
         Swal.fire({

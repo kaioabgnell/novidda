@@ -12,6 +12,45 @@ use App\Http\Controllers\SegmentationController;
 use App\Http\Controllers\WidgetSettingController;
 use Illuminate\Support\Facades\Route;
 
+
+Route::get('/fix-storage-link', function () {
+    $target = storage_path('app/public');
+    $link   = public_path('storage');   // usa public_path para evitar path hardcoded
+
+    $info = [
+        'target_path'    => $target,
+        'target_exists'  => file_exists($target),
+        'link_path'      => $link,
+        'link_is_link'   => is_link($link),
+        'link_is_dir'    => is_dir($link),
+        'link_is_file'   => is_file($link),
+        'symlink_func'   => function_exists('symlink') ? 'disponível' : 'DESABILITADA',
+    ];
+
+    // Remove qualquer symlink ou pasta vazia errada
+    if (is_link($link)) {
+        unlink($link);
+        $info['removeu'] = 'symlink antigo removido';
+    } elseif (is_dir($link)) {
+        @rmdir($link);
+        $info['removeu'] = 'diretório vazio removido (se estava vazio)';
+    }
+
+    if (!function_exists('symlink')) {
+        $info['status'] = '❌ symlink() desabilitado neste servidor — use a rota /storage/{path} como fallback (já ativa)';
+        return response()->json($info);
+    }
+
+    if (@symlink($target, $link)) {
+        $info['status']  = '✅ Symlink criado com sucesso!';
+        $info['testUrl'] = url('storage/uploads/');
+    } else {
+        $info['status'] = '❌ symlink() falhou — use a rota /storage/{path} como fallback (já ativa)';
+    }
+
+    return response()->json($info);
+});
+
 // ---- Convidado (não autenticado) ----
 Route::middleware('guest')->group(function () {
     Route::get('register', [RegisteredUserController::class, 'create'])->name('register');
