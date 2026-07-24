@@ -203,6 +203,41 @@
     ══════════════════════════════════════════ --}}
     <div id="tab-install" class="tab-pane active">
 
+        {{-- Aviso obrigatório para SaaS com login --}}
+        <div class="info-box info-warn" style="margin-bottom:var(--gap);align-items:flex-start;">
+            <span class="info-box-icon"><i class="fa-solid fa-triangle-exclamation"></i></span>
+            <div>
+                <strong>Usa um SaaS/sistema com login de usuário? A identificação é obrigatória.</strong><br>
+                Para que cada usuário veja as novidades de forma individual — e o contador de não-lidos
+                seja <strong>por pessoa</strong>, e não por navegador — você <strong>precisa</strong> informar o usuário
+                logado via <code>window.noviddaConfig</code>. Sem isso, usuários diferentes no mesmo navegador
+                compartilham o mesmo estado de leitura (um zera o contador do outro, e usuários novos aparecem
+                com tudo já lido).
+                <div class="code-card" style="margin-top:12px;">
+                    <div class="code-card-header">
+                        <div class="code-card-title"><i class="fa-solid fa-key"></i> Estrutura obrigatória</div>
+                        <button class="copy-btn" onclick="nvCopy(this, 'snippet-required')">
+                            <i class="fa-solid fa-copy"></i> Copiar
+                        </button>
+                    </div>
+<pre id="snippet-required"><span class="hl-kw">window</span>.noviddaConfig = {
+  <span class="hl-attr">token</span>: <span class="hl-str">'{{ $token }}'</span>,
+  <span class="hl-attr">user</span>: {
+    <span class="hl-attr">id</span>:    <span class="hl-tag">&lt;?=</span> <span class="hl-var">$usuarioLogado</span>-><span class="hl-attr">id</span> <span class="hl-tag">?&gt;</span>,     <span class="hl-comment">// id real do usuário logado (obrigatório)</span>
+    <span class="hl-attr">email</span>: <span class="hl-str">'<span class="hl-tag">&lt;?=</span> <span class="hl-var">$usuarioLogado</span>-><span class="hl-attr">email</span> <span class="hl-tag">?&gt;</span>'</span>,
+    <span class="hl-attr">name</span>:  <span class="hl-str">'<span class="hl-tag">&lt;?=</span> <span class="hl-var">$usuarioLogado</span>-><span class="hl-attr">name</span> <span class="hl-tag">?&gt;</span>'</span>
+  }
+};</pre>
+                </div>
+                <span style="display:block;margin-top:10px;font-size:12.5px;">
+                    <i class="fa-solid fa-circle-info" style="margin-right:4px;"></i>
+                    O <code>user.id</code> precisa ser <strong>dinâmico</strong> (o id de quem está logado naquela sessão) —
+                    nunca um valor fixo. Renderize-o no servidor a cada página. O <code>email</code> serve de
+                    alternativa quando não houver id interno.
+                </span>
+            </div>
+        </div>
+
         {{-- Passo 1 -- Instalação mínima --}}
         <div class="card" style="margin-bottom:var(--gap);">
             <div class="section-label">Início rápido</div>
@@ -221,9 +256,10 @@
                 <div class="step">
                     <div class="step-num">2</div>
                     <div class="step-body">
-                        <div class="step-title">Opcional: identifique o usuário logado</div>
+                        <div class="step-title">Identifique o usuário logado <span style="color:#f4845f;">(obrigatório para SaaS com login)</span></div>
                         <div class="step-desc">
-                            Passe os dados do usuário via <code>window.noviddaConfig.user</code> para habilitar
+                            Passe os dados do usuário via <code>window.noviddaConfig.user</code>. É o que garante o
+                            contador de não-lidos <strong>por usuário</strong> (e não por navegador), além de habilitar
                             segmentação de audiência, rastreabilidade e personalização.
                         </div>
                     </div>
@@ -244,10 +280,13 @@
         <div class="card" style="margin-bottom:var(--gap);">
             <div class="section-label">Modo anônimo — instalação mínima</div>
 
-            <div class="info-box info-tip">
-                <span class="info-box-icon"><i class="fa-solid fa-circle-info"></i></span>
-                <span>Use este snippet se não precisar identificar usuários. O widget funciona normalmente,
-                mas changelogs com <strong>regras de segmentação</strong> não serão exibidos para visitantes anônimos.</span>
+            <div class="info-box info-warn">
+                <span class="info-box-icon"><i class="fa-solid fa-triangle-exclamation"></i></span>
+                <span>Use este snippet <strong>apenas em sites sem login</strong> (landing pages, sites públicos).
+                Em um SaaS/sistema com login de usuário, <strong>não use este modo</strong>: o contador de não-lidos
+                ficaria por navegador (compartilhado entre logins). Nesse caso, use a estrutura com
+                <code>window.noviddaConfig.user</code> abaixo. Changelogs com <strong>regras de segmentação</strong>
+                também não são exibidos para visitantes anônimos.</span>
             </div>
 
             <div class="code-card">
@@ -268,12 +307,13 @@
 
         {{-- Snippet completo com usuário --}}
         <div class="card" style="margin-bottom:var(--gap);">
-            <div class="section-label">Com identificação de usuário — recomendado</div>
+            <div class="section-label">Com identificação de usuário — obrigatório para SaaS com login</div>
 
             <div class="info-box info-ok">
                 <span class="info-box-icon"><i class="fa-solid fa-circle-check"></i></span>
                 <span>Defina <code>window.noviddaConfig</code> <strong>antes</strong> do script do widget.
-                O objeto <code>user</code> é completamente opcional — passe apenas os campos disponíveis no seu sistema.</span>
+                O <code>user.id</code> é <strong>obrigatório</strong> em sistemas com login (é a chave da leitura por usuário);
+                os demais campos são opcionais — passe apenas os disponíveis no seu sistema.</span>
             </div>
 
             <div class="code-card">
