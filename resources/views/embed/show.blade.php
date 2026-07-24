@@ -220,14 +220,22 @@
                             <i class="fa-solid fa-copy"></i> Copiar
                         </button>
                     </div>
-<pre id="snippet-required"><span class="hl-kw">window</span>.noviddaConfig = {
-  <span class="hl-attr">token</span>: <span class="hl-str">'{{ $token }}'</span>,
-  <span class="hl-attr">user</span>: {
-    <span class="hl-attr">id</span>:    <span class="hl-tag">&lt;?=</span> <span class="hl-var">$usuarioLogado</span>-><span class="hl-attr">id</span> <span class="hl-tag">?&gt;</span>,     <span class="hl-comment">// id real do usuário logado (obrigatório)</span>
-    <span class="hl-attr">email</span>: <span class="hl-str">'<span class="hl-tag">&lt;?=</span> <span class="hl-var">$usuarioLogado</span>-><span class="hl-attr">email</span> <span class="hl-tag">?&gt;</span>'</span>,
-    <span class="hl-attr">name</span>:  <span class="hl-str">'<span class="hl-tag">&lt;?=</span> <span class="hl-var">$usuarioLogado</span>-><span class="hl-attr">name</span> <span class="hl-tag">?&gt;</span>'</span>
-  }
-};</pre>
+<pre id="snippet-required"><span class="hl-comment">&lt;!-- Cole antes do &lt;/body&gt; --&gt;</span>
+
+<span class="hl-comment">&lt;!-- 1. Configuração (antes do widget) --&gt;</span>
+<span class="hl-tag">&lt;script&gt;</span>
+  <span class="hl-kw">window</span>.noviddaConfig = {
+    <span class="hl-attr">token</span>: <span class="hl-str">'{{ $token }}'</span>,
+    <span class="hl-attr">user</span>: {
+      <span class="hl-attr">id</span>:    <span class="hl-tag">&lt;?=</span> <span class="hl-var">$usuarioLogado</span>-><span class="hl-attr">id</span> <span class="hl-tag">?&gt;</span>,     <span class="hl-comment">// id real do usuário logado (obrigatório)</span>
+      <span class="hl-attr">email</span>: <span class="hl-str">'<span class="hl-tag">&lt;?=</span> <span class="hl-var">$usuarioLogado</span>-><span class="hl-attr">email</span> <span class="hl-tag">?&gt;</span>'</span>,
+      <span class="hl-attr">name</span>:  <span class="hl-str">'<span class="hl-tag">&lt;?=</span> <span class="hl-var">$usuarioLogado</span>-><span class="hl-attr">name</span> <span class="hl-tag">?&gt;</span>'</span>
+    }
+  };
+<span class="hl-tag">&lt;/script&gt;</span>
+
+<span class="hl-comment">&lt;!-- 2. Script do widget --&gt;</span>
+<span class="hl-tag">&lt;script</span> <span class="hl-attr">src</span>=<span class="hl-str">"{{ url('widget.js') }}"</span> <span class="hl-attr">async</span><span class="hl-tag">&gt;&lt;/script&gt;</span></pre>
                 </div>
                 <span style="display:block;margin-top:10px;font-size:12.5px;">
                     <i class="fa-solid fa-circle-info" style="margin-right:4px;"></i>
