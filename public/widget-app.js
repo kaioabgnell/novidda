@@ -20,6 +20,23 @@
     return fetch(ctx.base + path, opts).then(function (r) { return r.json(); });
   }
 
+  // Anexa a identidade de leitura ao corpo do request. Prefere o usuário
+  // logado no sistema hospedeiro (user_id); reader_id é sempre enviado como
+  // fallback para sites anônimos.
+  function ident(obj) {
+    obj = obj || {};
+    obj.reader_id = ctx.reader;
+    if (ctx.userId) obj.user_id = ctx.userId;
+    return obj;
+  }
+
+  // Query string de identidade para requests GET.
+  function identQS() {
+    var qs = 'reader_id=' + encodeURIComponent(ctx.reader);
+    if (ctx.userId) qs += '&user_id=' + encodeURIComponent(ctx.userId);
+    return qs;
+  }
+
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
@@ -627,7 +644,7 @@
         var emoji = el.getAttribute('data-emoji');
         api('/reaction', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ reader_id: ctx.reader, changelog_id: +id, emoji: emoji })
+          body: JSON.stringify(ident({ changelog_id: +id, emoji: emoji }))
         });
         el.classList.add('active');
         var rc = el.querySelector('.rc');
@@ -665,11 +682,11 @@
         var id = form.getAttribute('data-cid');
         api('/comment', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            reader_id: ctx.reader, changelog_id: +id,
+          body: JSON.stringify(ident({
+            changelog_id: +id,
             author_name: form.author_name.value,
             body: form.body.value, website: form.website.value
-          })
+          }))
         }).then(function () {
           // Oculta o formulario e reseta o botao toggle
           form.reset();
@@ -759,7 +776,7 @@
         var comment = (form.querySelector('[name=comment]') || {}).value || '';
         api('/changelog-feedback', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ reader_id: ctx.reader, changelog_id: +id, score: score, comment: comment })
+          body: JSON.stringify(ident({ changelog_id: +id, score: score, comment: comment }))
         }).then(function () {
           try { localStorage.setItem('nv_fb_' + id, '1'); } catch (e) {}
           // Substitui o bloco pelo agradecimento
@@ -861,7 +878,7 @@
 
           api('/roadmap-vote', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ reader_id: ctx.reader, roadmap_item_id: +id, vote: vote })
+            body: JSON.stringify(ident({ roadmap_item_id: +id, vote: vote }))
           }).then(function (res) {
             if (!res || !res.ok) return;
             try {
@@ -928,7 +945,7 @@
           var comment = (form.querySelector('[name=comment]') || {}).value || '';
           api('/roadmap-feedback', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ reader_id: ctx.reader, roadmap_item_id: +id, score: score, comment: comment })
+            body: JSON.stringify(ident({ roadmap_item_id: +id, score: score, comment: comment }))
           }).then(function () {
             try { localStorage.setItem('nv_rm_fb_' + id, '1'); } catch (e) {}
             var rmItem = rmBody.querySelector('.rm-item[data-rmid="' + id + '"]');
@@ -963,7 +980,7 @@
       ctx.badge.style.display = 'none';
       api('/read', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reader_id: ctx.reader })
+        body: JSON.stringify(ident())
       }).catch(function () {});
     }
   }
@@ -976,7 +993,7 @@
 
   Promise.all([
     api('/config'),
-    api('/feed?reader_id=' + encodeURIComponent(ctx.reader))
+    api('/feed?' + identQS())
   ]).then(function (res) {
     var cfg = res[0] || {};
 

@@ -79,7 +79,7 @@ class WidgetApiController extends Controller
     public function unreadCount(Request $request): JsonResponse
     {
         $account  = $this->account($request);
-        $readerId = (string) $request->query('reader_id', '');
+        $readerId = $this->readerId($request);
         $s        = $account->widgetSettings;
         $theme    = $s->theme ?? [];
 
@@ -623,8 +623,32 @@ class WidgetApiController extends Controller
         return null;
     }
 
+    /**
+     * Identidade de leitura do widget.
+     *
+     * Ordem de preferência:
+     *   1. user_id informado pelo sistema hospedeiro (login real) — estado por
+     *      usuário, estável entre navegadores/dispositivos e distinto para
+     *      logins diferentes no mesmo navegador. Namespaced por conta para
+     *      evitar colisão entre tenants.
+     *   2. reader_id anônimo (localStorage do navegador) — sites públicos.
+     *   3. fallback anon por IP+UA quando nada é informado.
+     */
     protected function readerId(Request $request): string
     {
+        $userId = trim((string) ($request->input('user_id') ?: $request->query('user_id') ?: ''));
+
+        if ($userId === '') {
+            $user = $this->parseUserContext($request);
+            if ($user && isset($user['id']) && (string) $user['id'] !== '') {
+                $userId = (string) $user['id'];
+            }
+        }
+
+        if ($userId !== '') {
+            return 'u-' . md5($this->account($request)->id . '|' . $userId);
+        }
+
         $id = (string) ($request->input('reader_id') ?: $request->query('reader_id') ?: '');
         return $id !== '' ? substr($id, 0, 64) : 'anon-' . substr(md5($request->ip() . $request->userAgent()), 0, 16);
     }

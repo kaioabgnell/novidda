@@ -15,9 +15,14 @@
     })();
   if (!self) return;
 
+  // Config oficial de integração (ver tela "Instalação & Documentação").
+  // O host define window.noviddaConfig = { token, user: {...} } ANTES do script.
+  var cfg = {};
+  try { cfg = window.noviddaConfig || {}; } catch (e) { cfg = {}; }
+
   var src   = self.getAttribute('src');
   var url   = new URL(src, location.href);
-  var token = url.searchParams.get('token') || self.getAttribute('data-token');
+  var token = cfg.token || url.searchParams.get('token') || self.getAttribute('data-token');
   if (!token) return;
 
   var origin = url.origin;
@@ -42,6 +47,37 @@
   }
 
   var reader = readerId();
+
+  // Identidade do usuário logado no sistema hospedeiro.
+  // Quando informada, o estado de "lido/não-lido" passa a ser por usuário
+  // (e não por navegador), resolvendo contadores compartilhados quando
+  // vários logins usam o mesmo navegador.
+  //
+  // Fonte de verdade: window.noviddaConfig.user (contrato documentado).
+  // Fallbacks legados: data-user-id / window.noviddaSettings.user.
+  var hostUser = (cfg.user && typeof cfg.user === 'object') ? cfg.user : null;
+
+  function hostUserId() {
+    if (hostUser) {
+      if (hostUser.id != null && hostUser.id !== '') return String(hostUser.id);
+      if (hostUser.email) return String(hostUser.email);
+    }
+    var fromAttr = self.getAttribute('data-user-id');
+    if (fromAttr) return String(fromAttr);
+    try {
+      var s = window.noviddaSettings;
+      if (s && s.user && s.user.id != null && s.user.id !== '') return String(s.user.id);
+    } catch (e) {}
+    return '';
+  }
+
+  var userId = hostUserId();
+
+  function withIdentity(qs) {
+    qs += 'reader_id=' + encodeURIComponent(reader);
+    if (userId) qs += '&user_id=' + encodeURIComponent(userId);
+    return qs;
+  }
 
   // Container fixo \u2014 posi\u00E7\u00E3o aplicada ap\u00F3s resposta da API
   var host = document.createElement('div');
@@ -106,7 +142,7 @@
     window.__novidda.buttonIcon = d.button_icon || null;
   }
 
-  fetch(base + '/unread-count?reader_id=' + encodeURIComponent(reader))
+  fetch(base + '/unread-count?' + withIdentity(''))
     .then(function (r) { return r.json(); })
     .then(function (d) {
       applyBootstrap(d);
@@ -120,6 +156,8 @@
         window.__novidda.base   = window.__novidda.base   || base;
         window.__novidda.origin = window.__novidda.origin || origin;
         window.__novidda.reader = window.__novidda.reader || reader;
+        window.__novidda.userId = window.__novidda.userId || userId;
+        window.__novidda.user   = window.__novidda.user   || hostUser;
         var cs = document.createElement('script');
         cs.src = origin + '/widget-contextual.js?v=' + encodeURIComponent(host.dataset.v || '1');
         document.head.appendChild(cs);
@@ -139,6 +177,8 @@
     window.__novidda.base   = base;
     window.__novidda.origin = origin;
     window.__novidda.reader = reader;
+    window.__novidda.userId = userId;
+    window.__novidda.user   = hostUser;
     window.__novidda.host   = host;
     window.__novidda.button = btn;
     window.__novidda.badge  = badge;
