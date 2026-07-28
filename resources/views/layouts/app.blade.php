@@ -90,19 +90,21 @@
 <script src="{{ asset('js/app.js') }}"></script>
 @stack('scripts')
 
-@auth
-    {{-- Widget Novidda — novidades para o usuário logado --}}
-    <script>
-      window.noviddaConfig = {
-        token: 'pFv14aDYmgbgV9UfXqwmYkDw48DlhgHQ4eu7uyCq',
-        user: {
-          id:    {{ auth()->id() }},                 // id real do usuário logado (obrigatório)
-          email: @json(auth()->user()->email),
-          name:  @json(auth()->user()->name)
-        }
-      };
-    </script>
-    <script src="{{ url('widget.js') }}" async></script>
-@endauth
+@env('local')
+    @auth
+        {{-- Widget Novidda — novidades para o usuário logado (apenas em APP_ENV=local) --}}
+        <script>
+          window.noviddaConfig = {
+            token: 'pFv14aDYmgbgV9UfXqwmYkDw48DlhgHQ4eu7uyCq',
+            user: {
+              id:    {{ auth()->id() }},                 // id real do usuário logado (obrigatório)
+              email: @json(auth()->user()->email),
+              name:  @json(auth()->user()->name)
+            }
+          };
+        </script>
+        <script src="{{ url('widget.js') }}" async></script>
+    @endauth
+@endenv
 </body>
 </html>
