@@ -360,6 +360,19 @@
                        @checked(old('cta_new_tab', $ws->cta_new_tab ?? true))>
                 <label for="cta_new_tab">Abrir em nova aba</label>
             </div>
+
+            @if ($changelog->exists)
+                <div style="display:flex;align-items:center;gap:12px;margin-top:16px;padding:12px 14px;
+                            background:var(--primary-pale);border-radius:var(--r-md);">
+                    <i class="fa-solid fa-arrow-pointer" style="color:var(--primary);font-size:16px;"></i>
+                    <div style="line-height:1.35;">
+                        <div style="font-size:20px;font-weight:700;color:var(--ink);">{{ number_format($ctaClicks, 0, ',', '.') }}</div>
+                        <div style="font-size:12px;color:var(--mute);">
+                            {{ $ctaClicks == 1 ? 'clique no botão de ação' : 'cliques no botão de ação' }}
+                        </div>
+                    </div>
+                </div>
+            @endif
         </div>
 
         {{-- ── Banner Contextual ── --}}

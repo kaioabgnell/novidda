@@ -30,6 +30,8 @@ Route::prefix('v1/widget/{token}')
         Route::post('reaction', [WidgetApiController::class, 'reaction']);
         Route::post('comment', [WidgetApiController::class, 'comment']);
         Route::post('changelog-feedback', [WidgetApiController::class, 'changelogFeedback']);
+        Route::post('cta-click', [WidgetApiController::class, 'ctaClick'])
+            ->middleware('throttle:60,1');
         Route::get('roadmap', [WidgetApiController::class, 'roadmapFeed']);
         Route::post('roadmap-feedback', [WidgetApiController::class, 'roadmapFeedback']);
         Route::post('roadmap-comment', [WidgetApiController::class, 'roadmapComment']);

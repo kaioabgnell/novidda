@@ -301,7 +301,7 @@
       : '';
 
     var cta = s.cta_text && s.cta_url
-      ? '<a class="cta" href="' + esc(s.cta_url) + '"' +
+      ? '<a class="cta" href="' + esc(s.cta_url) + '" data-cta="' + it.id + '"' +
         (s.cta_new_tab ? ' target="_blank" rel="noopener"' : '') +
         (s.cta_color ? ' style="background:' + esc(s.cta_color) + '"' : '') +
         '>' + esc(s.cta_text) + '</a>'
@@ -649,6 +649,24 @@
         el.classList.add('active');
         var rc = el.querySelector('.rc');
         if (rc) rc.textContent = +rc.textContent + 1;
+      });
+    });
+
+    // Cliques no botao de acao (CTA) — fire-and-forget, nao bloqueia a navegacao
+    panel.querySelectorAll('.cta[data-cta]').forEach(function (el) {
+      el.addEventListener('click', function () {
+        var body = ident({ changelog_id: +el.getAttribute('data-cta'), url: el.getAttribute('href') || null });
+        try {
+          if (navigator.sendBeacon) {
+            navigator.sendBeacon(ctx.base + '/cta-click',
+              new Blob([JSON.stringify(body)], { type: 'application/json' }));
+            return;
+          }
+        } catch (e) {}
+        api('/cta-click', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body), keepalive: true
+        }).catch(function () {});
       });
     });
 

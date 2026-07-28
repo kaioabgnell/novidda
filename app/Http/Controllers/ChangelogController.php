@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Category;
 use App\Models\Changelog;
 use App\Models\ContextualBanner;
+use App\Models\WidgetEvent;
 use App\Support\HtmlSanitizer;
 use App\Support\WidgetCache;
 use Illuminate\Http\Request;
@@ -46,6 +47,7 @@ class ChangelogController extends Controller
             'reactions'  => collect(),
             'feedbacks'  => collect(),
             'banner'     => null,
+            'ctaClicks'  => 0,
         ]);
     }
 
@@ -72,6 +74,10 @@ class ChangelogController extends Controller
             ->get();
         $feedbacks = $changelog->feedbacks()->latest()->get();
 
+        $ctaClicks = WidgetEvent::where('changelog_id', $changelog->id)
+            ->where('type', 'cta_click')
+            ->count();
+
         return view('changelogs.form', [
             'changelog'  => $changelog,
             'categories' => Category::orderBy('name')->get(),
@@ -80,6 +86,7 @@ class ChangelogController extends Controller
             'reactions'  => $reactions,
             'feedbacks'  => $feedbacks,
             'banner'     => $changelog->contextualBanner,
+            'ctaClicks'  => $ctaClicks,
         ]);
     }
 

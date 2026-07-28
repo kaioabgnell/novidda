@@ -6,6 +6,12 @@ AddCharset utf-8 .js .css
     <FilesMatch "\.(woff|woff2|ttf|eot|otf)$">
         Header set Access-Control-Allow-Origin "*"
     </FilesMatch>
+
+    # Loader e app do widget: sempre revalidar para que novas versoes cheguem
+    # imediatamente aos sistemas hospedeiros (evita JS antigo em cache).
+    <FilesMatch "^(widget|widget-app|widget-contextual)\.js$">
+        Header set Cache-Control "no-cache, must-revalidate"
+    </FilesMatch>
 </IfModule>
 
 <IfModule mod_rewrite.c>

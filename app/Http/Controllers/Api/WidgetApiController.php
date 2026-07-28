@@ -517,6 +517,35 @@ class WidgetApiController extends Controller
         return response()->noContent();
     }
 
+    /** Registra um clique no botão de ação (CTA) de um changelog. */
+    public function ctaClick(Request $request): \Illuminate\Http\Response
+    {
+        $account = $this->account($request);
+
+        $data = $request->validate([
+            'changelog_id' => ['required', 'integer'],
+            'url'          => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        // Garante que o changelog pertence à conta e está publicado (segurança).
+        $changelog = Changelog::live()->find($data['changelog_id']);
+
+        if (!$changelog) {
+            return response()->noContent();
+        }
+
+        WidgetEvent::create([
+            'account_id'   => $account->id,
+            'changelog_id' => $changelog->id,
+            'reader_id'    => $this->readerId($request),
+            'type'         => 'cta_click',
+            'metadata'     => ['url' => $data['url'] ?? null],
+            'created_at'   => now(),
+        ]);
+
+        return response()->noContent();
+    }
+
     // ---- helpers ----
 
     protected function serializeChangelog(Changelog $c): array

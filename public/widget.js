@@ -184,7 +184,7 @@
     window.__novidda.badge  = badge;
 
     var s   = document.createElement('script');
-    s.src   = origin + '/widget-app.js?v=6';
+    s.src   = origin + '/widget-app.js?v=7';
     s.async = true;
     document.head.appendChild(s);
   });
