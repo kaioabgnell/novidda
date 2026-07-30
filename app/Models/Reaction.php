@@ -10,7 +10,11 @@ class Reaction extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['changelog_id', 'reader_id', 'emoji'];
+    protected $fillable = ['changelog_id', 'reader_id', 'emoji', 'metadata'];
+
+    protected $casts = [
+        'metadata' => 'array',
+    ];
 
     public function changelog(): BelongsTo
     {

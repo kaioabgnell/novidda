@@ -234,9 +234,18 @@ class WidgetApiController extends Controller
         $changelog = Changelog::live()->find($data['changelog_id']);
         abort_unless($changelog, 404);
 
+        $updateData = ['emoji' => $data['emoji']];
+
+        // Só sobrescreve a identidade guardada se o widget enviou dados novos
+        // (evita apagar nome/empresa já conhecidos em cliques anônimos futuros).
+        $identity = $this->widgetUserIdentity($request);
+        if (!empty($identity)) {
+            $updateData['metadata'] = $identity;
+        }
+
         Reaction::updateOrCreate(
             ['changelog_id' => $changelog->id, 'reader_id' => $this->readerId($request)],
-            ['emoji' => $data['emoji']]
+            $updateData
         );
 
         WidgetCache::bump($account->id);
@@ -539,7 +548,7 @@ class WidgetApiController extends Controller
             'changelog_id' => $changelog->id,
             'reader_id'    => $this->readerId($request),
             'type'         => 'cta_click',
-            'metadata'     => array_merge(['url' => $data['url'] ?? null], $this->ctaClickIdentity($request)),
+            'metadata'     => array_merge(['url' => $data['url'] ?? null], $this->widgetUserIdentity($request)),
             'created_at'   => now(),
         ]);
 
@@ -548,9 +557,9 @@ class WidgetApiController extends Controller
 
     /**
      * Extrai nome do usuário e nome/id da empresa a partir do contexto de
-     * usuário enviado pelo widget, para exibição na listagem de cliques.
+     * usuário enviado pelo widget, para exibição nas listagens de "quem clicou"/"quem reagiu".
      */
-    protected function ctaClickIdentity(Request $request): array
+    protected function widgetUserIdentity(Request $request): array
     {
         $user = $this->parseUserContext($request);
 

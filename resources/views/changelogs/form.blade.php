@@ -789,6 +789,28 @@
     </div>
 </div>
 
+{{-- Modal de listagem de quem reagiu (carregado sob demanda) --}}
+<div id="reactions-list-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9000;align-items:center;justify-content:center;">
+    <div style="background:var(--card-bg);border-radius:var(--r-md);padding:24px;max-width:620px;width:95%;position:relative;max-height:85vh;display:flex;flex-direction:column;">
+        <button type="button" onclick="document.getElementById('reactions-list-overlay').style.display='none';"
+                style="position:absolute;top:12px;right:14px;background:none;border:none;font-size:20px;cursor:pointer;color:var(--mute);">&times;</button>
+        <h4 id="reactions-list-title" style="margin-bottom:4px;font-size:15px;">Quem reagiu</h4>
+        <p id="reactions-list-count" style="font-size:13px;color:var(--mute);margin-bottom:14px;">—</p>
+        <input type="text" id="reactions-list-search" class="input" placeholder="Buscar por nome ou empresa..."
+               style="margin-bottom:12px;flex-shrink:0;" autocomplete="off">
+        <div id="reactions-list-list" style="overflow-y:auto;flex:1;min-height:140px;max-height:50vh;border-top:1px solid var(--canvas);">
+            <table class="data-table" style="width:100%;">
+                <thead><tr><th>Quem reagiu</th><th style="white-space:nowrap;">Quando</th></tr></thead>
+                <tbody id="reactions-list-tbody"></tbody>
+            </table>
+        </div>
+        <p id="reactions-list-empty" style="display:none;text-align:center;font-size:13px;color:var(--mute);padding:24px 0;flex-shrink:0;">Nenhuma reação encontrada.</p>
+        <div id="reactions-list-loading" style="text-align:center;padding:10px;font-size:12px;color:var(--mute);display:none;flex-shrink:0;">
+            <i class="fa-solid fa-spinner fa-spin"></i> Carregando…
+        </div>
+    </div>
+</div>
+
 {{-- Analytics (comentários, reações, feedbacks) — apenas no modo edição --}}
 @if ($changelog->exists)
 <div class="card" style="margin-top:var(--gap);">
@@ -839,7 +861,10 @@
                 <div class="reaction-row">
                     <span class="reaction-emoji">{{ $r->emoji }}</span>
                     <span class="reaction-count">{{ $r->total }}</span>
-                    <span class="muted">{{ $r->total === 1 ? 'reação' : 'reações' }}</span>
+                    <span class="muted" style="flex:1;">{{ $r->total === 1 ? 'reação' : 'reações' }}</span>
+                    <button type="button" class="btn btn-sm" onclick="nvReactionsOpen('{{ $r->emoji }}')" style="flex-shrink:0;">
+                        <i class="fa-solid fa-list"></i> Ver quem reagiu
+                    </button>
                 </div>
             @endforeach
         @endif
@@ -1421,6 +1446,89 @@ function nvCtaClicksScroll() {
                 document.getElementById('cta-clicks-tbody').innerHTML = '';
                 document.getElementById('cta-clicks-empty').style.display = 'none';
                 nvCtaClicksLoadNext();
+            }, 300);
+        });
+    }
+})();
+
+// ── Quem reagiu (carregado sob demanda, paginado com scroll infinito) ──
+var nvReactionsUrl = @json($changelog->exists ? route('changelogs.reactions-list', $changelog) : null);
+var nvReactionsState = { emoji: '', page: 0, lastPage: 1, loading: false, search: '', searchTimer: null };
+
+function nvReactionsOpen(emoji) {
+    document.getElementById('reactions-list-overlay').style.display = 'flex';
+    document.getElementById('reactions-list-tbody').innerHTML = '';
+    document.getElementById('reactions-list-search').value = '';
+    document.getElementById('reactions-list-empty').style.display = 'none';
+    document.getElementById('reactions-list-title').textContent = 'Quem reagiu com ' + emoji;
+    document.getElementById('reactions-list-count').textContent = 'Carregando…';
+    nvReactionsState = { emoji: emoji, page: 0, lastPage: 1, loading: false, search: '', searchTimer: null };
+    nvReactionsLoadNext();
+}
+
+function nvReactionsLoadNext() {
+    if (!nvReactionsUrl || nvReactionsState.loading) return;
+    if (nvReactionsState.page > 0 && nvReactionsState.page >= nvReactionsState.lastPage) return;
+
+    nvReactionsState.loading = true;
+    var nextPage = nvReactionsState.page + 1;
+    document.getElementById('reactions-list-loading').style.display = '';
+
+    var url = nvReactionsUrl + '?page=' + nextPage +
+        '&emoji=' + encodeURIComponent(nvReactionsState.emoji) +
+        '&q=' + encodeURIComponent(nvReactionsState.search);
+
+    fetch(url)
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            nvReactionsState.page = data.current_page;
+            nvReactionsState.lastPage = data.last_page;
+
+            document.getElementById('reactions-list-count').textContent =
+                data.total + (data.total === 1 ? ' pessoa reagiu' : ' pessoas reagiram');
+
+            var tbody = document.getElementById('reactions-list-tbody');
+            data.items.forEach(function (it) {
+                var who = it.user_name ? escHtml(it.user_name) : 'Anônimo';
+                if (it.company_name) who += ' — ' + escHtml(it.company_name);
+                var tr = document.createElement('tr');
+                tr.innerHTML = '<td>' + who + '</td><td class="muted" style="white-space:nowrap;">' + escHtml(it.reacted_at || '—') + '</td>';
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById('reactions-list-empty').style.display = (data.total === 0) ? '' : 'none';
+            nvReactionsState.loading = false;
+            document.getElementById('reactions-list-loading').style.display = 'none';
+        })
+        .catch(function () {
+            nvReactionsState.loading = false;
+            document.getElementById('reactions-list-loading').style.display = 'none';
+        });
+}
+
+function nvReactionsScroll() {
+    var el = document.getElementById('reactions-list-list');
+    if (el.scrollTop + el.clientHeight >= el.scrollHeight - 60) {
+        nvReactionsLoadNext();
+    }
+}
+
+(function () {
+    var listEl = document.getElementById('reactions-list-list');
+    if (listEl) listEl.addEventListener('scroll', nvReactionsScroll);
+
+    var searchEl = document.getElementById('reactions-list-search');
+    if (searchEl) {
+        searchEl.addEventListener('input', function () {
+            var val = this.value;
+            clearTimeout(nvReactionsState.searchTimer);
+            nvReactionsState.searchTimer = setTimeout(function () {
+                nvReactionsState.search = val.trim();
+                nvReactionsState.page = 0;
+                nvReactionsState.lastPage = 1;
+                document.getElementById('reactions-list-tbody').innerHTML = '';
+                document.getElementById('reactions-list-empty').style.display = 'none';
+                nvReactionsLoadNext();
             }, 300);
         });
     }

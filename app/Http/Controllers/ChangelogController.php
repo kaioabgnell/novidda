@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Category;
 use App\Models\Changelog;
 use App\Models\ContextualBanner;
+use App\Models\Reaction;
 use App\Models\WidgetEvent;
 use App\Support\HtmlSanitizer;
 use App\Support\WidgetCache;
@@ -121,6 +122,52 @@ class ChangelogController extends Controller
                 'user_name'    => $e->metadata['user_name'] ?? null,
                 'company_name' => $e->metadata['company_name'] ?? null,
                 'clicked_at'   => $e->created_at?->format('d/m/Y H:i'),
+            ]);
+
+        return response()->json([
+            'total'        => $total,
+            'per_page'     => $perPage,
+            'current_page' => $page,
+            'last_page'    => max(1, (int) ceil($total / $perPage)),
+            'items'        => $items,
+        ]);
+    }
+
+    /**
+     * Lista paginada (com busca, opcionalmente filtrada por emoji) de quem
+     * reagiu, carregada sob demanda pelo modal "Ver quem reagiu".
+     */
+    public function reactionsList(Request $request, Changelog $changelog): JsonResponse
+    {
+        $emoji   = trim((string) $request->query('emoji', ''));
+        $search  = trim((string) $request->query('q', ''));
+        $perPage = 20;
+        $page    = max(1, (int) $request->query('page', 1));
+
+        $query = Reaction::where('changelog_id', $changelog->id);
+
+        if ($emoji !== '') {
+            $query->where('emoji', $emoji);
+        }
+
+        if ($search !== '') {
+            $like = '%' . addcslashes($search, '%_\\') . '%';
+            $query->where(function ($q) use ($like) {
+                $q->where('metadata->user_name', 'like', $like)
+                  ->orWhere('metadata->company_name', 'like', $like);
+            });
+        }
+
+        $total = (clone $query)->count();
+
+        $items = $query->orderByDesc('updated_at')
+            ->forPage($page, $perPage)
+            ->get()
+            ->map(fn ($r) => [
+                'emoji'        => $r->emoji,
+                'user_name'    => $r->metadata['user_name'] ?? null,
+                'company_name' => $r->metadata['company_name'] ?? null,
+                'reacted_at'   => $r->updated_at?->format('d/m/Y H:i'),
             ]);
 
         return response()->json([

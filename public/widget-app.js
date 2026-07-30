@@ -642,9 +642,11 @@
         if (el.classList.contains('active')) return;
         var id    = el.getAttribute('data-react');
         var emoji = el.getAttribute('data-emoji');
+        var body  = ident({ changelog_id: +id, emoji: emoji });
+        if (ctx.user) body.user = ctx.user;
         api('/reaction', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(ident({ changelog_id: +id, emoji: emoji }))
+          body: JSON.stringify(body)
         });
         el.classList.add('active');
         var rc = el.querySelector('.rc');
