@@ -365,12 +365,17 @@
                 <div style="display:flex;align-items:center;gap:12px;margin-top:16px;padding:12px 14px;
                             background:var(--primary-pale);border-radius:var(--r-md);">
                     <i class="fa-solid fa-arrow-pointer" style="color:var(--primary);font-size:16px;"></i>
-                    <div style="line-height:1.35;">
+                    <div style="line-height:1.35;flex:1;">
                         <div style="font-size:20px;font-weight:700;color:var(--ink);">{{ number_format($ctaClicks, 0, ',', '.') }}</div>
                         <div style="font-size:12px;color:var(--mute);">
                             {{ $ctaClicks == 1 ? 'clique no botão de ação' : 'cliques no botão de ação' }}
                         </div>
                     </div>
+                    @if ($ctaClicks > 0)
+                        <button type="button" class="btn btn-sm" onclick="nvCtaClicksOpen()" style="flex-shrink:0;">
+                            <i class="fa-solid fa-list"></i> Ver quem clicou
+                        </button>
+                    @endif
                 </div>
             @endif
         </div>
@@ -759,6 +764,28 @@
         <p id="seg-preview-count" style="font-size:13px;color:var(--mute);margin-bottom:16px;">—</p>
         <div id="seg-preview-body"></div>
         <div id="seg-preview-pagination" style="display:flex;align-items:center;gap:6px;margin-top:16px;font-size:13px;"></div>
+    </div>
+</div>
+
+{{-- Modal de listagem de quem clicou no botão de ação (carregado sob demanda) --}}
+<div id="cta-clicks-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9000;align-items:center;justify-content:center;">
+    <div style="background:var(--card-bg);border-radius:var(--r-md);padding:24px;max-width:620px;width:95%;position:relative;max-height:85vh;display:flex;flex-direction:column;">
+        <button type="button" onclick="document.getElementById('cta-clicks-overlay').style.display='none';"
+                style="position:absolute;top:12px;right:14px;background:none;border:none;font-size:20px;cursor:pointer;color:var(--mute);">&times;</button>
+        <h4 style="margin-bottom:4px;font-size:15px;">Quem clicou no botão de ação</h4>
+        <p id="cta-clicks-count" style="font-size:13px;color:var(--mute);margin-bottom:14px;">—</p>
+        <input type="text" id="cta-clicks-search" class="input" placeholder="Buscar por nome ou empresa..."
+               style="margin-bottom:12px;flex-shrink:0;" autocomplete="off">
+        <div id="cta-clicks-list" style="overflow-y:auto;flex:1;min-height:140px;max-height:50vh;border-top:1px solid var(--canvas);">
+            <table class="data-table" style="width:100%;">
+                <thead><tr><th>Quem clicou</th><th style="white-space:nowrap;">Quando</th></tr></thead>
+                <tbody id="cta-clicks-tbody"></tbody>
+            </table>
+        </div>
+        <p id="cta-clicks-empty" style="display:none;text-align:center;font-size:13px;color:var(--mute);padding:24px 0;flex-shrink:0;">Nenhum clique encontrado.</p>
+        <div id="cta-clicks-loading" style="text-align:center;padding:10px;font-size:12px;color:var(--mute);display:none;flex-shrink:0;">
+            <i class="fa-solid fa-spinner fa-spin"></i> Carregando…
+        </div>
     </div>
 </div>
 
@@ -1320,6 +1347,84 @@ function nvSegLoadPreview(page) {
             '<p style="color:var(--mute);font-size:13px;">Erro ao carregar dados.</p>';
     });
 }
+
+// ── Quem clicou no botão de ação (carregado sob demanda, paginado com scroll infinito) ──
+var nvCtaClicksUrl = @json($changelog->exists ? route('changelogs.cta-clicks', $changelog) : null);
+var nvCtaState = { page: 0, lastPage: 1, loading: false, search: '', searchTimer: null };
+
+function nvCtaClicksOpen() {
+    document.getElementById('cta-clicks-overlay').style.display = 'flex';
+    document.getElementById('cta-clicks-tbody').innerHTML = '';
+    document.getElementById('cta-clicks-search').value = '';
+    document.getElementById('cta-clicks-empty').style.display = 'none';
+    document.getElementById('cta-clicks-count').textContent = 'Carregando…';
+    nvCtaState = { page: 0, lastPage: 1, loading: false, search: '', searchTimer: null };
+    nvCtaClicksLoadNext();
+}
+
+function nvCtaClicksLoadNext() {
+    if (!nvCtaClicksUrl || nvCtaState.loading) return;
+    if (nvCtaState.page > 0 && nvCtaState.page >= nvCtaState.lastPage) return;
+
+    nvCtaState.loading = true;
+    var nextPage = nvCtaState.page + 1;
+    document.getElementById('cta-clicks-loading').style.display = '';
+
+    fetch(nvCtaClicksUrl + '?page=' + nextPage + '&q=' + encodeURIComponent(nvCtaState.search))
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            nvCtaState.page = data.current_page;
+            nvCtaState.lastPage = data.last_page;
+
+            document.getElementById('cta-clicks-count').textContent =
+                data.total + (data.total === 1 ? ' clique' : ' cliques') + ' no total';
+
+            var tbody = document.getElementById('cta-clicks-tbody');
+            data.items.forEach(function (it) {
+                var who = it.user_name ? escHtml(it.user_name) : 'Anônimo';
+                if (it.company_name) who += ' — ' + escHtml(it.company_name);
+                var tr = document.createElement('tr');
+                tr.innerHTML = '<td>' + who + '</td><td class="muted" style="white-space:nowrap;">' + escHtml(it.clicked_at || '—') + '</td>';
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById('cta-clicks-empty').style.display = (data.total === 0) ? '' : 'none';
+            nvCtaState.loading = false;
+            document.getElementById('cta-clicks-loading').style.display = 'none';
+        })
+        .catch(function () {
+            nvCtaState.loading = false;
+            document.getElementById('cta-clicks-loading').style.display = 'none';
+        });
+}
+
+function nvCtaClicksScroll() {
+    var el = document.getElementById('cta-clicks-list');
+    if (el.scrollTop + el.clientHeight >= el.scrollHeight - 60) {
+        nvCtaClicksLoadNext();
+    }
+}
+
+(function () {
+    var listEl = document.getElementById('cta-clicks-list');
+    if (listEl) listEl.addEventListener('scroll', nvCtaClicksScroll);
+
+    var searchEl = document.getElementById('cta-clicks-search');
+    if (searchEl) {
+        searchEl.addEventListener('input', function () {
+            var val = this.value;
+            clearTimeout(nvCtaState.searchTimer);
+            nvCtaState.searchTimer = setTimeout(function () {
+                nvCtaState.search = val.trim();
+                nvCtaState.page = 0;
+                nvCtaState.lastPage = 1;
+                document.getElementById('cta-clicks-tbody').innerHTML = '';
+                document.getElementById('cta-clicks-empty').style.display = 'none';
+                nvCtaClicksLoadNext();
+            }, 300);
+        });
+    }
+})();
 
 // Inicialização
 (function () {

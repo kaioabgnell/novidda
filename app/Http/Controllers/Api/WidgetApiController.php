@@ -539,11 +539,45 @@ class WidgetApiController extends Controller
             'changelog_id' => $changelog->id,
             'reader_id'    => $this->readerId($request),
             'type'         => 'cta_click',
-            'metadata'     => ['url' => $data['url'] ?? null],
+            'metadata'     => array_merge(['url' => $data['url'] ?? null], $this->ctaClickIdentity($request)),
             'created_at'   => now(),
         ]);
 
         return response()->noContent();
+    }
+
+    /**
+     * Extrai nome do usuário e nome/id da empresa a partir do contexto de
+     * usuário enviado pelo widget, para exibição na listagem de cliques.
+     */
+    protected function ctaClickIdentity(Request $request): array
+    {
+        $user = $this->parseUserContext($request);
+
+        if (!is_array($user)) {
+            return [];
+        }
+
+        $identity = [];
+
+        $name = trim((string) ($user['name'] ?? ''));
+        if ($name !== '') {
+            $identity['user_name'] = mb_substr($name, 0, 190);
+        }
+
+        $company = is_array($user['company'] ?? null) ? $user['company'] : [];
+
+        $companyName = trim((string) ($company['name'] ?? ''));
+        if ($companyName !== '') {
+            $identity['company_name'] = mb_substr($companyName, 0, 190);
+        }
+
+        $companyId = trim((string) ($company['id'] ?? ''));
+        if ($companyId !== '') {
+            $identity['company_id'] = mb_substr($companyId, 0, 190);
+        }
+
+        return $identity;
     }
 
     // ---- helpers ----

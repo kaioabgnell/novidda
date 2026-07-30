@@ -8,6 +8,7 @@ use App\Models\ContextualBanner;
 use App\Models\WidgetEvent;
 use App\Support\HtmlSanitizer;
 use App\Support\WidgetCache;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -87,6 +88,47 @@ class ChangelogController extends Controller
             'feedbacks'  => $feedbacks,
             'banner'     => $changelog->contextualBanner,
             'ctaClicks'  => $ctaClicks,
+        ]);
+    }
+
+    /**
+     * Lista paginada (com busca) de quem clicou no botão de ação, carregada
+     * sob demanda pelo modal "Ver quem clicou" — nunca no carregamento da página.
+     */
+    public function ctaClicksList(Request $request, Changelog $changelog): JsonResponse
+    {
+        $search  = trim((string) $request->query('q', ''));
+        $perPage = 20;
+        $page    = max(1, (int) $request->query('page', 1));
+
+        $query = WidgetEvent::where('changelog_id', $changelog->id)
+            ->where('type', 'cta_click');
+
+        if ($search !== '') {
+            $like = '%' . addcslashes($search, '%_\\') . '%';
+            $query->where(function ($q) use ($like) {
+                $q->where('metadata->user_name', 'like', $like)
+                  ->orWhere('metadata->company_name', 'like', $like);
+            });
+        }
+
+        $total = (clone $query)->count();
+
+        $items = $query->orderByDesc('id')
+            ->forPage($page, $perPage)
+            ->get()
+            ->map(fn ($e) => [
+                'user_name'    => $e->metadata['user_name'] ?? null,
+                'company_name' => $e->metadata['company_name'] ?? null,
+                'clicked_at'   => $e->created_at?->format('d/m/Y H:i'),
+            ]);
+
+        return response()->json([
+            'total'        => $total,
+            'per_page'     => $perPage,
+            'current_page' => $page,
+            'last_page'    => max(1, (int) ceil($total / $perPage)),
+            'items'        => $items,
         ]);
     }
 

@@ -656,6 +656,7 @@
     panel.querySelectorAll('.cta[data-cta]').forEach(function (el) {
       el.addEventListener('click', function () {
         var body = ident({ changelog_id: +el.getAttribute('data-cta'), url: el.getAttribute('href') || null });
+        if (ctx.user) body.user = ctx.user;
         try {
           if (navigator.sendBeacon) {
             navigator.sendBeacon(ctx.base + '/cta-click',

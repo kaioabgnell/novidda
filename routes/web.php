@@ -84,6 +84,8 @@ Route::middleware(['auth', 'tenant'])->group(function () {
     Route::resource('changelogs', ChangelogController::class)->except('show');
     Route::post('changelogs/{changelog}/publish', [ChangelogController::class, 'publish'])->name('changelogs.publish');
     Route::post('changelogs/{changelog}/archive', [ChangelogController::class, 'archive'])->name('changelogs.archive');
+    Route::get('api/admin/changelogs/{changelog}/cta-clicks', [ChangelogController::class, 'ctaClicksList'])
+        ->name('changelogs.cta-clicks');
 
     Route::resource('categories', CategoryController::class)->except('show');
 

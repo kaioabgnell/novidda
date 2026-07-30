@@ -99,7 +99,11 @@
             user: {
               id:    {{ auth()->id() }},                 // id real do usuário logado (obrigatório)
               email: @json(auth()->user()->email),
-              name:  @json(auth()->user()->name)
+              name:  @json(auth()->user()->name),
+              company: {
+                    id:   'Painel Admin',
+                    name: 'Company'
+                }
             }
           };
         </script>
