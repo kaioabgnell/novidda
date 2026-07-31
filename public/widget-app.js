@@ -16,7 +16,12 @@
   document.body.appendChild(wrap);
   var shadow = wrap.attachShadow({ mode: 'open' });
 
+  // A API do widget e autenticada por token na URL e nunca depende de cookies.
+  // credentials:'omit' garante compatibilidade com o CORS curinga da API quando
+  // o widget roda em dominios de terceiros.
   function api(path, opts) {
+    opts = opts || {};
+    opts.credentials = 'omit';
     return fetch(ctx.base + path, opts).then(function (r) { return r.json(); });
   }
 
@@ -654,22 +659,26 @@
       });
     });
 
-    // Cliques no botao de acao (CTA) — fire-and-forget, nao bloqueia a navegacao
+    // Cliques no botao de acao (CTA) — fire-and-forget, nao bloqueia a navegacao.
+    //
+    // NAO usar navigator.sendBeacon aqui: por especificacao ele sempre envia a
+    // request em modo credentials:'include', o que e incompativel com o CORS
+    // curinga (Access-Control-Allow-Origin: *) da API do widget — o navegador
+    // bloqueia a resposta em dominios de terceiros. fetch com keepalive tem o
+    // mesmo comportamento de sobreviver a navegacao, sem enviar credenciais.
     panel.querySelectorAll('.cta[data-cta]').forEach(function (el) {
       el.addEventListener('click', function () {
         var body = ident({ changelog_id: +el.getAttribute('data-cta'), url: el.getAttribute('href') || null });
         if (ctx.user) body.user = ctx.user;
         try {
-          if (navigator.sendBeacon) {
-            navigator.sendBeacon(ctx.base + '/cta-click',
-              new Blob([JSON.stringify(body)], { type: 'application/json' }));
-            return;
-          }
+          fetch(ctx.base + '/cta-click', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+            credentials: 'omit',
+            keepalive: true
+          }).catch(function () {});
         } catch (e) {}
-        api('/cta-click', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body), keepalive: true
-        }).catch(function () {});
       });
     });
 
