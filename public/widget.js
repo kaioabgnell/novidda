@@ -79,11 +79,51 @@
     return qs;
   }
 
-  // Container fixo \u2014 posi\u00E7\u00E3o aplicada ap\u00F3s resposta da API
+  // ------------------------------------------------------------------
+  //  Font Awesome isolado do site host
+  // ------------------------------------------------------------------
+  // O all.min.css NUNCA entra no documento do host: seus seletores globais
+  // (.fa-solid:before{content:var(--fa)}, as variaveis --fa e as familias de
+  // compatibilidade v4/v5) sobrescreveriam o Font Awesome do cliente e quebrariam
+  // os icones dele. No documento entra somente nv-fontface.css, que tem apenas
+  // regras @font-face com nomes de familia privados -- sem seletores, sem colisao.
+  function nvFontFaceOnce() {
+    if (document.querySelector('link[data-nv-fa-font]')) return;
+    var l = document.createElement('link');
+    l.rel  = 'stylesheet';
+    l.href = origin + '/vendor/fontawesome/css/nv-fontface.css';
+    l.setAttribute('data-nv-fa-font', '1');
+    document.head.appendChild(l);
+  }
+
+  // Aplica os seletores do Font Awesome dentro de um shadow root (encapsulado,
+  // nao vaza para o host) e remapeia as familias para as fontes privadas
+  // registradas por nvFontFaceOnce() -- @font-face em shadow DOM tem suporte
+  // inconsistente entre navegadores, por isso o registro fica no documento.
+  function nvInjectFa(root) {
+    if (!root || root.querySelector('link[data-nv-fa]')) return;
+    nvFontFaceOnce();
+    var l = document.createElement('link');
+    l.rel  = 'stylesheet';
+    l.href = origin + '/vendor/fontawesome/css/all.min.css';
+    l.setAttribute('data-nv-fa', '1');
+    root.appendChild(l);
+    var s = document.createElement('style');
+    s.textContent =
+      '.fa,.fas,.fa-solid{font-family:"NvFA6Free"!important;font-weight:900!important}' +
+      '.far,.fa-regular{font-family:"NvFA6Free"!important;font-weight:400!important}' +
+      '.fab,.fa-brands{font-family:"NvFA6Brands"!important;font-weight:400!important}';
+    root.appendChild(s);
+  }
+
+  // Container fixo \u2014 posi\u00E7\u00E3o aplicada ap\u00F3s resposta da API.
+  // O botao vive dentro de um shadow root para que o CSS do Font Awesome usado
+  // pelo icone customizado fique isolado do site host.
   var host = document.createElement('div');
   host.id  = 'novidda-widget';
   host.setAttribute('style', 'position:fixed;bottom:24px;right:24px;z-index:2147483000;');
   document.body.appendChild(host);
+  var btnRoot = host.attachShadow({ mode: 'open' });
 
   // Bot\u00E3o flutuante
   var btn = document.createElement('button');
@@ -107,7 +147,7 @@
     'position:absolute;top:-4px;right:-4px;min-width:20px;height:20px;padding:0 5px;border-radius:10px;' +
     'background:#e74c3c;color:#fff;font:700 12px/20px system-ui,sans-serif;text-align:center;display:none;';
   btn.appendChild(badge);
-  host.appendChild(btn);
+  btnRoot.appendChild(btn);
 
   // Aplica config vinda do unread-count (posi\u00E7\u00E3o, cor, \u00EDcone)
   function applyBootstrap(d) {
@@ -122,14 +162,8 @@
 
     // \u00CDcone customizado (FontAwesome class)
     if (d.button_icon) {
-      // Garante que FA esteja no head para o \u00EDcone do bot\u00E3o flutuante
-      if (!document.querySelector('link[data-nv-fa]')) {
-        var faHead = document.createElement('link');
-        faHead.rel  = 'stylesheet';
-        faHead.href = origin + '/vendor/fontawesome/css/all.min.css';
-        faHead.setAttribute('data-nv-fa', '1');
-        document.head.appendChild(faHead);
-      }
+      // FA aplicado apenas no shadow root do bot\u00E3o \u2014 nunca no documento do host
+      nvInjectFa(btnRoot);
       var iconEl = document.createElement('i');
       d.button_icon.split(' ').forEach(function (c) { if (c) iconEl.classList.add(c); });
       btn.innerHTML = '';
@@ -179,12 +213,14 @@
     window.__novidda.reader = reader;
     window.__novidda.userId = userId;
     window.__novidda.user   = hostUser;
-    window.__novidda.host   = host;
-    window.__novidda.button = btn;
-    window.__novidda.badge  = badge;
+    window.__novidda.host     = host;
+    window.__novidda.button   = btn;
+    window.__novidda.badge    = badge;
+    window.__novidda.btnRoot  = btnRoot;
+    window.__novidda.injectFa = nvInjectFa;
 
     var s   = document.createElement('script');
-    s.src   = origin + '/widget-app.js?v=8';
+    s.src   = origin + '/widget-app.js?v=9';
     s.async = true;
     document.head.appendChild(s);
   });

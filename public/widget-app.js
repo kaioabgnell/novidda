@@ -35,6 +35,38 @@
     return obj;
   }
 
+  // Font Awesome isolado do site host: os seletores do all.min.css entram apenas
+  // dentro de um shadow root (encapsulados), e no documento do host so entra o
+  // nv-fontface.css, que tem exclusivamente @font-face com nomes de familia
+  // privados. Assim o widget nunca sobrescreve o Font Awesome do cliente, seja
+  // qual for a versao que ele usa.
+  //
+  // Prefere o helper do loader; a copia local garante o isolamento mesmo quando o
+  // widget.js em cache no navegador ainda for de uma versao anterior.
+  function nvFa(root) {
+    if (!root || !ctx.origin) return;
+    if (ctx.injectFa) { ctx.injectFa(root); return; }
+    if (root.querySelector('link[data-nv-fa]')) return;
+    if (!document.querySelector('link[data-nv-fa-font]')) {
+      var f = document.createElement('link');
+      f.rel  = 'stylesheet';
+      f.href = ctx.origin + '/vendor/fontawesome/css/nv-fontface.css';
+      f.setAttribute('data-nv-fa-font', '1');
+      document.head.appendChild(f);
+    }
+    var l = document.createElement('link');
+    l.rel  = 'stylesheet';
+    l.href = ctx.origin + '/vendor/fontawesome/css/all.min.css';
+    l.setAttribute('data-nv-fa', '1');
+    root.appendChild(l);
+    var s = document.createElement('style');
+    s.textContent =
+      '.fa,.fas,.fa-solid{font-family:"NvFA6Free"!important;font-weight:900!important}' +
+      '.far,.fa-regular{font-family:"NvFA6Free"!important;font-weight:400!important}' +
+      '.fab,.fa-brands{font-family:"NvFA6Brands"!important;font-weight:400!important}';
+    root.appendChild(s);
+  }
+
   // Query string de identidade para requests GET.
   function identQS() {
     var qs = 'reader_id=' + encodeURIComponent(ctx.reader);
@@ -484,23 +516,8 @@
   /* ------------------------------------------------------------------ */
 
   function build(cfg, feed) {
-    // Dual FA load:
-    // 1) document.head  -> registra @font-face globalmente (resolve suporte inconsistente em shadow DOM)
-    // 2) shadow DOM     -> aplica seletores de classe (.fa-solid etc.) ao conteudo isolado
-    if (ctx.origin) {
-      var faHref = ctx.origin + '/vendor/fontawesome/css/all.min.css';
-      if (!document.querySelector('link[data-nv-fa]')) {
-        var faHead = document.createElement('link');
-        faHead.rel  = 'stylesheet';
-        faHead.href = faHref;
-        faHead.setAttribute('data-nv-fa', '1');
-        document.head.appendChild(faHead);
-      }
-      var faShad = document.createElement('link');
-      faShad.rel  = 'stylesheet';
-      faShad.href = faHref;
-      shadow.appendChild(faShad);
-    }
+    // Font Awesome apenas dentro do shadow root — ver nvFa().
+    nvFa(shadow);
 
     var styleEl = document.createElement('style');
     styleEl.textContent = styles(cfg);
@@ -1037,8 +1054,11 @@
     }
     if (cfg.accent) ctx.button.style.background = cfg.accent;
 
-    // Atualiza icone do botao flutuante se mudou desde o unread-count
+    // Atualiza icone do botao flutuante se mudou desde o unread-count.
+    // O botao vive no proprio shadow root (ctx.btnRoot), que precisa do FA
+    // isolado; loaders antigos em cache nao expoem btnRoot e ja injetam o seu.
     if (cfg.button_icon && cfg.button_icon !== (ctx.buttonIcon || '')) {
+      nvFa(ctx.btnRoot);
       var iconEl = document.createElement('i');
       cfg.button_icon.split(' ').forEach(function (c) { if (c) iconEl.classList.add(c); });
       ctx.button.innerHTML = '';

@@ -1,0 +1,42 @@
+/*!
+ * Novidda -- registro isolado das fontes do Font Awesome 6.7.2 (Free).
+ *
+ * Este é o ÚNICO CSS do widget que entra no documento do site host, e por isso
+ * contém exclusivamente regras @font-face -- nenhum seletor. Sem seletores, é
+ * impossível sobrescrever o Font Awesome (ou qualquer outro CSS) do cliente.
+ *
+ * As famílias usam nomes privados ("NvFA6Free"/"NvFA6Brands") de propósito: o
+ * all.min.css oficial declara também as famílias de compatibilidade
+ * "Font Awesome 5 Free", "Font Awesome 5 Brands" e "FontAwesome", que colidiriam
+ * com sites que usam Font Awesome 4 ou 5 -- os glifos seriam trocados pelos da
+ * v6. Com nomes privados, a fonte do widget nunca conflita com a do host,
+ * independentemente da versão que ele usa.
+ *
+ * Os seletores .fa-* continuam vindo do all.min.css, carregado apenas dentro dos
+ * shadow roots do widget, onde ficam encapsulados. Ver nvInjectFa() em
+ * widget.js / widget-app.js.
+ */
+@font-face {
+    font-family: "NvFA6Free";
+    font-style: normal;
+    font-weight: 900;
+    font-display: block;
+    src: url(../webfonts/fa-solid-900.woff2) format("woff2"),
+         url(../webfonts/fa-solid-900.ttf) format("truetype");
+}
+@font-face {
+    font-family: "NvFA6Free";
+    font-style: normal;
+    font-weight: 400;
+    font-display: block;
+    src: url(../webfonts/fa-regular-400.woff2) format("woff2"),
+         url(../webfonts/fa-regular-400.ttf) format("truetype");
+}
+@font-face {
+    font-family: "NvFA6Brands";
+    font-style: normal;
+    font-weight: 400;
+    font-display: block;
+    src: url(../webfonts/fa-brands-400.woff2) format("woff2"),
+         url(../webfonts/fa-brands-400.ttf) format("truetype");
+}
