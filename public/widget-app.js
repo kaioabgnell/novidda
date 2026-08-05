@@ -1024,7 +1024,9 @@
     overlay.classList.toggle('show', open);
     panel.classList.toggle('show', open);
     if (open) {
-      ctx.badge.style.display = 'none';
+      // Tudo lido: libera o recolhimento do botao imediatamente, sem recarregar.
+      if (ctx.setUnread) ctx.setUnread(0);
+      else ctx.badge.style.display = 'none';
       api('/read', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(ident())
@@ -1044,8 +1046,12 @@
   ]).then(function (res) {
     var cfg = res[0] || {};
 
-    // Reaplica posicao e cor (garante sincronismo com config atual)
-    if (cfg.position === 'left') {
+    // Reaplica posicao e cor (garante sincronismo com config atual).
+    // Via ctx.setSide o loader mantem o estado minimizado; o fallback cobre
+    // loaders antigos ainda em cache no navegador do cliente.
+    if (ctx.setSide) {
+      ctx.setSide(cfg.position);
+    } else if (cfg.position === 'left') {
       ctx.host.style.right = 'auto';
       ctx.host.style.left  = '24px';
     } else {

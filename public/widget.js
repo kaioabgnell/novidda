@@ -125,11 +125,117 @@
   document.body.appendChild(host);
   var btnRoot = host.attachShadow({ mode: 'open' });
 
+  // ------------------------------------------------------------------
+  //  Minimizar / restaurar o botao flutuante
+  // ------------------------------------------------------------------
+  // Regra de produto: o usuario pode recolher o botao para a lateral, mas
+  // apenas quando nao ha novidades pendentes. Como minimizar so e permitido
+  // com zero nao-lidos, qualquer contagem > 0 significa changelog novo desde
+  // entao -- por isso a mesma verificacao resolve os dois requisitos:
+  // restaurar automaticamente quando sai um changelog e bloquear o recolhimento
+  // enquanto houver algo por ler. Nao e preciso rastrear ids.
+  var minKey = 'novidda_min_' + token + (userId ? '_' + userId : '');
+
+  function minRead() {
+    try { return localStorage.getItem(minKey) === '1'; } catch (e) { return false; }
+  }
+  function minWrite(v) {
+    // Sem localStorage a preferencia vale so para a sessao \u2014 degradacao aceitavel.
+    try { v ? localStorage.setItem(minKey, '1') : localStorage.removeItem(minKey); } catch (e) {}
+  }
+
+  var minimized = minRead();
+  var unread    = 0;
+  var side      = 'right';
+
+  var chevron = {
+    right: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>',
+    left:  '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>'
+  };
+
+  // CSS no shadow root do botao: permite hover/focus/media queries (impossivel
+  // com style inline) sem vazar nada para o site host.
+  var btnStyle = document.createElement('style');
+  btnStyle.textContent =
+    '.nv-shell{position:relative;display:block}' +
+    '.nv-hide{position:absolute;top:-6px;left:-6px;width:20px;height:20px;padding:0;border:none;' +
+      'border-radius:50%;cursor:pointer;background:#2d3436;color:#fff;box-shadow:0 2px 6px rgba(0,0,0,.3);' +
+      'display:flex;align-items:center;justify-content:center;opacity:0;transform:scale(.8);' +
+      'pointer-events:none;transition:opacity .15s,transform .15s}' +
+    '.nv-shell:hover .nv-hide,.nv-hide:focus-visible{opacity:1;transform:scale(1);pointer-events:auto}' +
+    '@media (hover:none){.nv-hide{opacity:.9;transform:scale(1);pointer-events:auto}}' +
+    '.nv-handle{width:20px;height:44px;padding:0;border:none;cursor:pointer;background:#6c5ce7;color:#fff;' +
+      'display:none;align-items:center;justify-content:center;box-shadow:0 3px 12px rgba(0,0,0,.22);' +
+      'transition:width .15s,filter .15s}' +
+    '.nv-handle:hover{width:26px;filter:brightness(1.08)}' +
+    '.nv-handle.nv-right{border-radius:10px 0 0 10px}' +
+    '.nv-handle.nv-left{border-radius:0 10px 10px 0}' +
+    '@media (prefers-reduced-motion:reduce){.nv-hide,.nv-handle{transition:none}}';
+  btnRoot.appendChild(btnStyle);
+
+  // O botao fica num shell para que o chip de minimizar seja irmao (e nao filho)
+  // do botao: widget.js e widget-app.js reescrevem btn.innerHTML ao aplicar o
+  // icone customizado, o que apagaria um filho.
+  var shell = document.createElement('div');
+  shell.className = 'nv-shell';
+
+  // Alca do estado minimizado
+  var handle = document.createElement('button');
+  handle.className = 'nv-handle nv-right';
+  handle.setAttribute('aria-label', 'Mostrar novidades');
+  handle.title = 'Mostrar novidades';
+  handle.innerHTML = chevron.left;
+
+  // Chip que recolhe o botao
+  var hideBtn = document.createElement('button');
+  hideBtn.className = 'nv-hide';
+  hideBtn.setAttribute('aria-label', 'Ocultar \u2014 fica recolhido na lateral');
+  hideBtn.title = 'Ocultar \u2014 fica recolhido na lateral';
+  hideBtn.innerHTML = chevron.right;
+
+  // Fonte unica de verdade do layout: posicao lateral + estado minimizado.
+  function applyMinState() {
+    var canMin = unread === 0;
+
+    // Novidade pendente: restaura e impede recolher.
+    if (minimized && !canMin) { minimized = false; minWrite(false); }
+
+    hideBtn.style.display = canMin ? '' : 'none';
+    shell.style.display   = minimized ? 'none' : '';
+    handle.style.display  = minimized ? 'flex' : 'none';
+
+    handle.className = 'nv-handle nv-' + side;
+    handle.innerHTML = side === 'left' ? chevron.right : chevron.left;
+    hideBtn.innerHTML = side === 'left' ? chevron.left : chevron.right;
+
+    // Minimizado encosta na borda; normal mantem o respiro de 24px.
+    var off = minimized ? '0px' : '24px';
+    if (side === 'left') { host.style.left = off;  host.style.right = 'auto'; }
+    else                 { host.style.right = off; host.style.left  = 'auto'; }
+  }
+
+  hideBtn.addEventListener('click', function (e) {
+    e.stopPropagation();
+    if (unread > 0) return;          // trava de seguranca
+    minimized = true;
+    minWrite(true);
+    applyMinState();
+    handle.focus();
+  });
+
+  handle.addEventListener('click', function (e) {
+    e.stopPropagation();
+    minimized = false;
+    minWrite(false);
+    applyMinState();
+    btn.focus();
+  });
+
   // Bot\u00E3o flutuante
   var btn = document.createElement('button');
   btn.setAttribute('aria-label', 'Novidades');
   btn.style.cssText =
-    'position:relative;width:56px;height:56px;border:none;border-radius:50%;cursor:pointer;' +
+    'position:relative;width:50px;height:50px;border:none;border-radius:50%;cursor:pointer;' +
     'background:#6c5ce7;color:#fff;font-size:22px;box-shadow:0 6px 18px rgba(0,0,0,.22);' +
     'display:flex;align-items:center;justify-content:center;transition:transform .15s,box-shadow .15s;';
   btn.onmouseenter = function () { btn.style.transform = 'scale(1.08)'; btn.style.boxShadow = '0 8px 24px rgba(0,0,0,.3)'; };
@@ -147,18 +253,19 @@
     'position:absolute;top:-4px;right:-4px;min-width:20px;height:20px;padding:0 5px;border-radius:10px;' +
     'background:#e74c3c;color:#fff;font:700 12px/20px system-ui,sans-serif;text-align:center;display:none;';
   btn.appendChild(badge);
-  btnRoot.appendChild(btn);
+  shell.appendChild(btn);
+  shell.appendChild(hideBtn);
+  btnRoot.appendChild(shell);
+  btnRoot.appendChild(handle);
+  applyMinState();
 
   // Aplica config vinda do unread-count (posi\u00E7\u00E3o, cor, \u00EDcone)
   function applyBootstrap(d) {
-    if (d.position === 'left') {
-      host.style.right = 'auto';
-      host.style.left  = '24px';
-    } else {
-      host.style.left  = 'auto';
-      host.style.right = '24px';
+    side = d.position === 'left' ? 'left' : 'right';
+    if (d.accent) {
+      btn.style.background    = d.accent;
+      handle.style.background = d.accent;
     }
-    if (d.accent) btn.style.background = d.accent;
 
     // \u00CDcone customizado (FontAwesome class)
     if (d.button_icon) {
@@ -174,16 +281,28 @@
     window.__novidda = window.__novidda || {};
     window.__novidda.unreadIds  = d.unread_ids || [];
     window.__novidda.buttonIcon = d.button_icon || null;
+
+    applyMinState();
+  }
+
+  // Atualiza a contagem de nao-lidos: pinta o badge e reavalia o estado
+  // minimizado (changelog novo => restaura e bloqueia o recolhimento).
+  function setUnread(n) {
+    unread = n > 0 ? n : 0;
+    if (unread > 0) {
+      badge.textContent   = unread > 99 ? '99+' : unread;
+      badge.style.display = 'block';
+    } else {
+      badge.style.display = 'none';
+    }
+    applyMinState();
   }
 
   fetch(base + '/unread-count?' + withIdentity(''))
     .then(function (r) { return r.json(); })
     .then(function (d) {
       applyBootstrap(d);
-      if (d.count > 0) {
-        badge.textContent = d.count > 99 ? '99+' : d.count;
-        badge.style.display = 'block';
-      }
+      setUnread(d.count || 0);
       // Lazy-load módulo de banners contextuais
       if (d.has_contextual_banners) {
         window.__novidda = window.__novidda || {};
@@ -218,9 +337,13 @@
     window.__novidda.badge    = badge;
     window.__novidda.btnRoot  = btnRoot;
     window.__novidda.injectFa = nvInjectFa;
+    // O loader e a fonte unica de verdade do layout do botao: o app usa estas
+    // funcoes em vez de mexer em host.style, que sobrescreveria o estado minimizado.
+    window.__novidda.setSide   = function (pos) { side = pos === 'left' ? 'left' : 'right'; applyMinState(); };
+    window.__novidda.setUnread = setUnread;
 
     var s   = document.createElement('script');
-    s.src   = origin + '/widget-app.js?v=9';
+    s.src   = origin + '/widget-app.js?v=10';
     s.async = true;
     document.head.appendChild(s);
   });
