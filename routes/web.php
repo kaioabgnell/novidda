@@ -7,6 +7,7 @@ use App\Http\Controllers\ChangelogController;
 use App\Http\Controllers\CommentModerationController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmbedController;
+use App\Http\Controllers\PreviewController;
 use App\Http\Controllers\RoadmapController;
 use App\Http\Controllers\SegmentationController;
 use App\Http\Controllers\WidgetSettingController;
@@ -99,6 +100,8 @@ Route::middleware(['auth', 'tenant'])->group(function () {
         ->whereIn('decision', ['approve', 'reject'])->name('comments.decide');
 
     Route::get('embed', [EmbedController::class, 'show'])->name('embed.show');
+
+    Route::get('preview', [PreviewController::class, 'show'])->name('preview.show');
 
     Route::get('widget-settings', [WidgetSettingController::class, 'edit'])->name('widget-settings.edit');
     Route::put('widget-settings', [WidgetSettingController::class, 'update'])->name('widget-settings.update');
