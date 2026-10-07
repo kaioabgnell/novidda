@@ -1554,9 +1554,9 @@ function nvReactionsScroll() {
 
     @foreach ($existingSegRules as $rule)
     nvSegAddRule(
-        {{ json_encode($rule['attribute']) }},
-        {{ json_encode($rule['operator']) }},
-        {{ json_encode($rule['value']) }}
+        @json($rule['attribute']),
+        @json($rule['operator']),
+        @json($rule['value'])
     );
     @endforeach
 
